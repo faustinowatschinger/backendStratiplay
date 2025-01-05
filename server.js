@@ -9,7 +9,9 @@ const app = express();
 const port = process.env.PORT || 5000;
 
 app.use(cors({
-  origin: 'https://stratiplay.com' // Cambia 'localhost' por tu dominio
+  origin: ['https://stratiplay.com', 'http://localhost:5173'], // Permitir solicitudes desde tu dominio y localhost
+  methods: 'GET,POST,PUT,DELETE',
+  allowedHeaders: 'Content-Type,Authorization'
 }));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
