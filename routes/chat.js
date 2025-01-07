@@ -143,14 +143,6 @@ router.post('/custom-prompt', async (req, res) => {
     }
 
     try {
-        // Eliminar el plan de estudio anterior
-        const userRef = db.collection('usuarios').doc(uid);
-        const planesSnapshot = await userRef.collection('planesEstudio').get();
-        const batch = db.batch();
-        planesSnapshot.forEach(doc => {
-            batch.delete(doc.ref);
-        });
-        await batch.commit();
 
         let contentSystem = `Eres un asistente que genera planes de estudio personalizados y adaptados a la informacion proporcionada por el usuario:
                         -Campo a estudiar
