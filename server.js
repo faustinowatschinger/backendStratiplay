@@ -11,7 +11,7 @@ const port = process.env.PORT || 5000;
 const corsOptions = {
   origin: 'https://stratiplay.com', // Reemplaza con tu dominio
   optionsSuccessStatus: 200,
-  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
   allowedHeaders: 'Content-Type,Authorization',
 };
 
@@ -20,18 +20,14 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 // Middleware para manejar solicitudes preflight
-app.options('*', (req, res) => {
-  res.header('Access-Control-Allow-Origin', 'https://stratiplay.com');
-  res.header('Access-Control-Allow-Methods', 'POST, GET, DELETE, PUT, PATCH, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  res.header('Access-Control-Max-Age', '1728000');
-  res.sendStatus(204);
-});
+app.options('*', cors(corsOptions));
 
+// Rutas de la API
 app.use('/api/chat', chatCustomPrompt);
 app.use('/api', cancelPlanRouter);
 
 // Sirve archivos estáticos desde el directorio de build
+app.use(express.static(path.join(__dirname, 'build')));
 
 app.listen(port, '0.0.0.0', () => {
   console.log(`Server is running on http://0.0.0.0:${port}`);
