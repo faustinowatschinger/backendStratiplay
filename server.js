@@ -11,6 +11,8 @@ const port = process.env.PORT || 5000;
 // Configuración de CORS para permitir solicitudes desde https://stratiplay.com
 const corsOptions = {
   origin: 'https://stratiplay.com',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
   optionsSuccessStatus: 200
 };
 
