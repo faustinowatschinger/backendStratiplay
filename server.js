@@ -8,8 +8,14 @@ import cancelPlanRouter from './api/cancel-plan.js';
 const app = express();
 const port = process.env.PORT || 5000;
 
+// Configuración de CORS para permitir solicitudes desde https://stratiplay.com
+const corsOptions = {
+  origin: 'https://stratiplay.com',
+  optionsSuccessStatus: 200
+};
+
 // Middleware para habilitar CORS
-app.use(cors());
+app.use(cors(corsOptions));
 
 // Middleware para parsear JSON y datos urlencoded
 app.use(bodyParser.json());
