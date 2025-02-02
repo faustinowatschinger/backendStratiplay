@@ -17,7 +17,7 @@ const corsOptions = {
 };
 
 // Middleware para habilitar CORS
-app.use(cors(corsOptions));
+app.options('*', cors(corsOptions)); // Habilita las solicitudes preflight para todas las rutas
 
 // Middleware para parsear JSON y datos urlencoded
 app.use(bodyParser.json());
