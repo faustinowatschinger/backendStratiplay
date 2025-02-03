@@ -493,4 +493,5 @@ router.get('/obtener-plan/:planId', async (req, res) => {
     }
 });
 
+// Exportar el router
 export default router;
