@@ -9,8 +9,7 @@ dotenv.config();
 const upload = multer();
 const router = express.Router();
 
-// Inicialización de Firebase
-import serviceAccount from '../config/ordo-62889-firebase-adminsdk-zl2wb-dd93e17d22.json' assert { type: 'json' };
+import serviceAccount from '../config/ordo-62889-firebase-adminsdk-zl2wb-dd93e17d22.json';  // Sin assert
 if (!admin.apps.length) {
     admin.initializeApp({
         credential: admin.credential.cert(serviceAccount),
