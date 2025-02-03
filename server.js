@@ -1,7 +1,10 @@
 import express from 'express';
 import bodyParser from 'body-parser';
 import cors from 'cors';
+import { fileURLToPath } from 'url';
 import path from 'path';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 import chatCustomPrompt from './routes/chat.js';
 import cancelPlanRouter from './api/cancel-plan.js';
 
