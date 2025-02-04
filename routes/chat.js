@@ -232,7 +232,6 @@ router.post('/custom-prompt', async (req, res) => {
                     {
                         role: 'system',
                         content: contentSystem
-                        
                     },
                     {
                         role: 'user',
@@ -311,6 +310,7 @@ router.post('/custom-prompt', async (req, res) => {
                     Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
                     'Content-Type': 'application/json',
                 },
+                timeout: 60000 // 60 segundos
             }
         );
 
