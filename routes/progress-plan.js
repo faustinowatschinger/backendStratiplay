@@ -7,9 +7,9 @@ async function progressPlan(req, res) {
     return res.status(405).json({ success: false, message: 'Método no permitido' });
   }
 
-  const { userId, planId, progreso } = req.body;
+  const { userId, planId, informacionTema } = req.body;
 
-  if (!userId || !planId) {
+  if (!userId || !planId || !informacionTema) {
     return res.status(400).json({ success: false, message: 'Faltan parámetros requeridos' });
   }
 
@@ -37,7 +37,7 @@ async function progressPlan(req, res) {
 
     await db.collection('plans').doc(planId).update({
       progressCount: progressCount + 1,
-      progreso,
+      informacionTema,
     });
 
     res.status(200).json({ success: true, message: 'Plan progresado correctamente' });
