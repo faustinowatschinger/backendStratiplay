@@ -1,6 +1,9 @@
 import express from 'express';
 import { getFirestore } from 'firebase-admin/firestore';
 import { getAuth } from 'firebase-admin/auth';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 const router = express.Router();
 const db = getFirestore();
