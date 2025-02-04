@@ -3,7 +3,7 @@ const { getAuth } = require('firebase-admin/auth');
 const db = getFirestore();
 const axios = require('axios');
 
-async function progressPlan(req, res) {
+router.post('/progress-plan', async (req, res) => {
   if (req.method !== 'POST') {
     return res.status(405).json({ success: false, message: 'Método no permitido' });
   }
@@ -50,6 +50,6 @@ async function progressPlan(req, res) {
     console.error('Error al progresar el plan:', error.message);
     res.status(500).json({ success: false, message: 'Error interno del servidor' });
   }
-}
+})
 
-module.exports = { progressPlan };
+export default router;
