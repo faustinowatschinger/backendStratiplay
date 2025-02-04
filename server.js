@@ -1,13 +1,14 @@
 import express from 'express';
-import bodyParser from 'body-parser';
 import cors from 'cors';
+import bodyParser from 'body-parser';
 import { fileURLToPath } from 'url';
 import path from 'path';
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 import chatCustomPrompt from './routes/chat.js';
 import cancelPlanRouter from './api/cancel-plan.js';
 import progressPlanRouter from './routes/progress-plan.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 const port = process.env.PORT || 5000;
@@ -27,8 +28,8 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 // Rutas
 app.use('/api/chat', chatCustomPrompt);
-app.use('/api', cancelPlanRouter);  // <-- Sin paréntesis extra
-app.use('/api/progress-plan', progressPlanRouter); // Usar el enrutador de progress-plan
+app.use('/api', cancelPlanRouter);
+app.use('/api', progressPlanRouter); // Usar el enrutador de progress-plan
 
 // Archivos estáticos
 app.use(express.static(path.join(__dirname, 'build')));
