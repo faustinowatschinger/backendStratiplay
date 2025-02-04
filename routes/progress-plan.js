@@ -1,7 +1,9 @@
-const { getFirestore } = require('firebase-admin/firestore');
-const { getAuth } = require('firebase-admin/auth');
+import express from 'express';
+import { getFirestore } from 'firebase-admin/firestore';
+import { getAuth } from 'firebase-admin/auth';
+
+const router = express.Router();
 const db = getFirestore();
-const axios = require('axios');
 
 router.post('/progress-plan', async (req, res) => {
   if (req.method !== 'POST') {
