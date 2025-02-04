@@ -225,9 +225,9 @@ router.post('/custom-prompt', async (req, res) => {
         logger.info('Prompt content:', promptContent);
 
         const response = await axios.post(
-            'https://api.deepseek.com/v1/chat/completions',
+            'https://api.openai.com/v1/chat/completions',
             {  
-                model: "deepseek-r1",
+                model: "gpt-4o",
                 messages: [
                     {
                         role: 'system',
@@ -308,7 +308,7 @@ router.post('/custom-prompt', async (req, res) => {
             },
             {
                 headers: {
-                    Authorization: `Bearer ${process.env.DEEPSEEK_API_KEY}`,
+                    Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
                     'Content-Type': 'application/json',
                 },
             }
