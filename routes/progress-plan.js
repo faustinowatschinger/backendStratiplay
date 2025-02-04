@@ -1,12 +1,10 @@
+const express = require('express');
 const { getFirestore } = require('firebase-admin/firestore');
 const { getAuth } = require('firebase-admin/auth');
+const router = express.Router();
 const db = getFirestore();
 
-async function progressPlan(req, res) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ success: false, message: 'Método no permitido' });
-  }
-
+router.post('/progress-plan', async (req, res) => {
   const { userId, planId, informacionTema } = req.body;
 
   if (!userId || !planId || !informacionTema) {
@@ -45,6 +43,6 @@ async function progressPlan(req, res) {
     console.error('Error al progresar el plan:', error.message);
     res.status(500).json({ success: false, message: 'Error interno del servidor' });
   }
-}
+});
 
-module.exports = { progressPlan };
+module.exports = router;
