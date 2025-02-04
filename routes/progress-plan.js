@@ -1,13 +1,15 @@
-const express = require('express');
 const { getFirestore } = require('firebase-admin/firestore');
 const { getAuth } = require('firebase-admin/auth');
-const router = express.Router();
 const db = getFirestore();
 
-router.post('/progress-plan', async (req, res) => {
-  const { userId, planId, informacionTema } = req.body;
+async function progressPlan(req, res) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ success: false, message: 'Método no permitido' });
+  }
 
-  if (!userId || !planId || !informacionTema) {
+  const { userId, planId, progreso } = req.body;
+
+  if (!userId || !planId) {
     return res.status(400).json({ success: false, message: 'Faltan parámetros requeridos' });
   }
 
@@ -35,7 +37,7 @@ router.post('/progress-plan', async (req, res) => {
 
     await db.collection('plans').doc(planId).update({
       progressCount: progressCount + 1,
-      informacionTema,
+      progreso,
     });
 
     res.status(200).json({ success: true, message: 'Plan progresado correctamente' });
@@ -43,6 +45,6 @@ router.post('/progress-plan', async (req, res) => {
     console.error('Error al progresar el plan:', error.message);
     res.status(500).json({ success: false, message: 'Error interno del servidor' });
   }
-});
+}
 
-module.exports = router;
+module.exports = { progressPlan };
