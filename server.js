@@ -27,7 +27,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 // Rutas
 app.use('/api/chat', chatCustomPrompt);
 app.use('/api', cancelPlanRouter);  // <-- Sin paréntesis extra
-app.use('/routes/progress-plan.js', progressPlanRouter);
+app.use('/api', progressPlanRouter);
 
 // Archivos estáticos
 app.use(express.static(path.join(__dirname, 'build')));
