@@ -9,6 +9,7 @@ const router = express.Router();
 const db = getFirestore();
 
 router.post('/progress-plan', async (req, res) => {
+  console.log("Datos recibidos:", req.body);
   if (req.method !== 'POST') {
     return res.status(405).json({ success: false, message: 'Método no permitido' });
   }
@@ -32,7 +33,7 @@ router.post('/progress-plan', async (req, res) => {
       }
     }, {
       headers: {
-        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`
+        Authorization: req.headers.authorization, // Usa el mismo token del usuario
       }
     });
 
