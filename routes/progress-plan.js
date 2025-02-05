@@ -1,7 +1,5 @@
 import express from 'express';
 import { getFirestore } from 'firebase-admin/firestore';
-import { getAuth } from 'firebase-admin/auth';
-import axios from 'axios'; // Asegúrate de importar axios
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -10,10 +8,6 @@ const router = express.Router();
 const db = getFirestore();
 
 router.post('/progress-plan', async (req, res) => {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ success: false, message: 'Método no permitido' });
-  }
-
   console.log("Datos recibidos:", req.body); // ✅ Verifica userId, planId, informacionTema
 
   const { userId, planId, informacionTema } = req.body;
@@ -49,16 +43,11 @@ router.post('/progress-plan', async (req, res) => {
       fechaCreacion: new Date()
     });
 
-    res.status(200).json({ 
-      success: true, 
-      message: 'Plan actualizado exitosamente',
-      nuevoPlanId: planRef.id 
-    });
-
+    res.status(200).json({ success: true, message: 'Plan progresado correctamente' });
   } catch (error) {
     console.error('Error al progresar el plan:', error.message);
     res.status(500).json({ success: false, message: 'Error interno del servidor' });
   }
-})
+});
 
 export default router;
