@@ -1,6 +1,7 @@
 import express from 'express';
 import { getFirestore } from 'firebase-admin/firestore';
 import { getAuth } from 'firebase-admin/auth';
+import axios from 'axios'; // Asegúrate de importar axios
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -9,15 +10,17 @@ const router = express.Router();
 const db = getFirestore();
 
 router.post('/progress-plan', async (req, res) => {
-  console.log("Datos recibidos:", req.body);
   if (req.method !== 'POST') {
     return res.status(405).json({ success: false, message: 'Método no permitido' });
   }
 
-  const { userId, planId, informacionTema } = req.body; // Cambiar "progreso" por "informacionTema"
+  console.log("Datos recibidos:", req.body); // ✅ Verifica userId, planId, informacionTema
+
+  const { userId, planId, informacionTema } = req.body;
 
   // Validación de campos requeridos
   if (!userId || !planId || !informacionTema) {
+    console.error("Faltan parámetros requeridos:", { userId, planId, informacionTema });
     return res.status(400).json({ success: false, message: 'Faltan parámetros requeridos' });
   }
 
