@@ -145,11 +145,14 @@ router.post('/custom-prompt', async (req, res) => {
         // Check if the previous plan should be deleted
         if (req.body.eliminarAnterior) {
             const planId = req.body.planId;
-            if (planId) {
-                logger.info(`Eliminando plan de estudio con id ${planId} para el usuario: ${uid}`);
-                await eliminarPlanEstudio(uid, planId);
-            } else {
-                logger.warn(`No se proporcionó un planId para eliminar para el usuario: ${uid}`);
+            try {
+                const userRef = db.collection('usuarios').doc(uid);
+                const planRef = userRef.collection('planesEstudio').doc(planId);
+                await planRef.delete();
+                logger.info('Plan de estudio eliminado exitosamente');
+            } catch (error) {
+                logger.error('Error al eliminar el plan de estudio:', error);
+                throw new Error('Error al eliminar el plan de estudio');
             }
         }
         let contentSystem = `Eres un asistente que genera planes de estudio personalizados y adaptados a la informacion proporcionada por el usuario:
