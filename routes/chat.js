@@ -423,6 +423,8 @@ router.post('/progresar-plan', async (req, res) => {
 
         // Generar nuevo plan
         const informacionTema = req.body.informacionTema;
+        logger.info('Datos recibidos:', informacionTema); // Log the received data
+
         if (!informacionTema) {
             logger.error('informacionTema no proporcionada');
             return res.status(400).json({ error: 'informacionTema no proporcionada' });
