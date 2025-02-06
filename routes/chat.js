@@ -113,7 +113,7 @@ router.post('/custom-prompt', async (req, res) => {
     let informacionTema;
     try {
         informacionTema = req.body.informacionTema;
-        console.log('Received informacionTema:', informacionTema); // Add this line
+        console.log('Received informacionTema:', informacionTema);
     } catch (error) {
         logger.error('Error al analizar informacionTema:', error.message);
         return res.status(400).json({ error: 'informacionTema no es un JSON válido' });
@@ -130,10 +130,8 @@ router.post('/custom-prompt', async (req, res) => {
         if (!idToken) {
             throw new Error('Token no proporcionado');
         }
-
         const decodedToken = await admin.auth().verifyIdToken(idToken);
         uid = decodedToken.uid;
-
         if (!uid) {
             throw new Error('El token no contiene un UID');
         }
@@ -143,7 +141,7 @@ router.post('/custom-prompt', async (req, res) => {
     }
 
     try {
-        // Check if the previous plan should be deleted
+        // Eliminar solo el plan cuyo ID se envíe
         if (req.body.eliminarAnterior) {
             const planId = req.body.planId;
             if (!planId) {
@@ -153,13 +151,14 @@ router.post('/custom-prompt', async (req, res) => {
                 const userRef = db.collection('usuarios').doc(uid);
                 const planRef = userRef.collection('planesEstudio').doc(planId);
                 await planRef.delete();
-                logger.info('Plan de estudio eliminado exitosamente');
+                logger.info(`Plan de estudio con id ${planId} eliminado exitosamente para el usuario: ${uid}`);
             } catch (error) {
                 logger.error('Error al eliminar el plan de estudio:', error);
                 throw new Error('Error al eliminar el plan de estudio');
             }
         }
 
+        // Continúa con la construcción del prompt y la llamada a OpenAI
         let contentSystem = `Eres un asistente que genera planes de estudio personalizados y adaptados a la informacion proporcionada por el usuario:
                         -Campo a estudiar
                         -Nivel intensidad
@@ -173,13 +172,13 @@ router.post('/custom-prompt', async (req, res) => {
             -Experiencia del jugador 
             -Tiempo de juego preferido
             -Elo (Ten muy en cuenta el elo del jugador para crear tareas a corde a su nivel)
-            -Conocimientos previos (Ten muy en cuenta los conocimientos previos del jugador para crear tareas a corde a sus conocimientos y reforzarlos)`
-        } 
-        else if (informacionTema.campo === 'Poker Texas Holdem') {
+            -Conocimientos previos (Ten muy en cuenta los conocimientos previos del jugador para crear tareas a acorde a sus conocimientos y reforzarlos)`;
+        } else if (informacionTema.campo === 'Poker Texas Holdem') {
             contentSystem += `
             -Tipo de Poker
-            -Límite de mesas`
-        }               
+            -Límite de mesas`;
+        }
+  
         let promptContent = `
         uid del usuario: ${uid}
         Campo a estudiar: ${informacionTema.campo}, 
@@ -194,26 +193,26 @@ router.post('/custom-prompt', async (req, res) => {
         - Ejercicios prácticos y evaluaciones para medir el progreso.
         - Tiene que poder realizarse en el tiempo disponible y ser realista.
         Para realizar las tareas y los objetivos debes tener en cuenta la experiencia, conocimientos del usuario y adaptar el plan a su nivel.`;
-
+  
         if (informacionTema.campo === 'Ajedrez') {
             console.log(`Informacion de ajedrez enviada por el usuario: - Experiencia del jugador: ${informacionTema.experienciaAjedrez || 'No especificado'}.
             ${informacionTema.experienciaAjedrez === 'Elo online' ? `- Elo chess.com/lichess del jugador: ${informacionTema.elo || 'No especificado'}.` : `- Elo fide del jugador: ${informacionTema.elo || 'No especificado'}.`}
             - Tiempo de juego preferido: ${informacionTema.tiempo || 'No especificado'}.
-            - Conocimientos previos: ${informacionTema.conocimientosAjedrez || 'No especificado'}.`)
+            - Conocimientos previos: ${informacionTema.conocimientosAjedrez || 'No especificado'}.`);
             promptContent += `
             Información específica para Ajedrez:
             - Experiencia del jugador: ${informacionTema.experienciaAjedrez || 'No especificado'}.
             ${informacionTema.experienciaAjedrez === 'Elo online' ? `- Elo chess.com/lichess del jugador: ${informacionTema.elo || 'No especificado'}.` : `- Elo fide del jugador: ${informacionTema.elo || 'No especificado'}.`}
             - Tiempo de juego preferido: ${informacionTema.tiempo || 'No especificado'}.
             - Conocimientos previos: ${informacionTema.conocimientosAjedrez || 'No especificado'}.
-
+  
             Crea un plan para mejorar el rendimiento en ajedrez considerando:
             1. Aperturas: Estudios específicos como Apertura Española, Defensa Siciliana, etc., alineados al elo y tiempo del usuario.
             2. Táctica: Ejercicios para mejorar combinaciones y cálculos rápidos.
             3. Estrategia y planes en el medio juego.
             4. Finales: Estudios de finales esenciales como rey y peones, torres, y finales complejos.
             5. Análisis de partidas propias y ajenas para identificar patrones y errores.
-
+  
             Recursos sugeridos:
             - Chess.com, Lichess.org, Chessable.
             - Libros: "100 Finales que debes saber", "Mi sistema".
@@ -240,22 +239,16 @@ router.post('/custom-prompt', async (req, res) => {
             - Herramientas como PioSolver y GTO+.`;
         }
         promptContent += `Por favor, asegúrate de que el plan de estudio sea claro, detallado, fácil de seguir y contenga pasos accionables para que el usuario pueda mejorar continuamente.`;
-
+  
         logger.info('Prompt content:', promptContent);
-
+  
         const response = await axios.post(
             'https://api.openai.com/v1/chat/completions',
             {  
                 model: "gpt-4o",
                 messages: [
-                    {
-                        role: 'system',
-                        content: contentSystem
-                    },
-                    {
-                        role: 'user',
-                        content: truncateString(promptContent, 1000),
-                    }
+                    { role: 'system', content: contentSystem },
+                    { role: 'user', content: truncateString(promptContent, 1000) }
                 ],
                 functions: [
                     {
@@ -317,16 +310,16 @@ router.post('/custom-prompt', async (req, res) => {
                 timeout: 60000 // 60 segundos
             }
         );
-
+  
         logger.info('Response from OpenAI:', response.data);
-
+  
         let responseData;
         try {
             const functionCall = response.data.choices[0].message.function_call;
             if (functionCall && functionCall.arguments) {
                 responseData = JSON.parse(functionCall.arguments);
                 logger.info('Response data:', responseData);
-
+  
                 const additionalData = {
                     campoEstudio: informacionTema.campo, 
                     nivelIntensidad: informacionTema.nivelIntensidad,
@@ -335,7 +328,7 @@ router.post('/custom-prompt', async (req, res) => {
                     tareasCompletadas: informacionTema.tareasCompletadas?.map(tarea => tarea.titulo).join(', ') || 'Ninguna',
                     objetivosCompletados: informacionTema.objetivosCompletados?.map(objetivo => objetivo.titulo).join(', ') || 'Ninguno',
                 };
-
+  
                 if (informacionTema.campo === 'Ajedrez') {
                     additionalData.experienciaAjedrez = informacionTema.experienciaAjedrez;
                     additionalData.elo = informacionTema.elo;
@@ -346,12 +339,13 @@ router.post('/custom-prompt', async (req, res) => {
                     additionalData.limiteMesa = informacionTema.limiteMesa;
                     additionalData.conocimientosPoker = informacionTema.conocimientosPoker;
                 }
-
+  
+                // Guarda el nuevo plan de estudio y se espera que la respuesta tenga la estructura necesaria
                 await guardarPlanEstudio(uid, {
                     ...responseData,
                     ...additionalData,
                 });
-
+  
                 return res.json({
                     ...responseData,
                 });
@@ -367,6 +361,7 @@ router.post('/custom-prompt', async (req, res) => {
         return res.status(500).json({ error: 'Error al generar el plan de estudio', details: error.message });
     }
 });
+
 router.delete('/eliminar-plan/:planId', async (req, res) => {
     const { planId } = req.params;
 
