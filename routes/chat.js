@@ -119,7 +119,7 @@ router.post('/custom-prompt', async (req, res) => {
         return res.status(400).json({ error: 'informacionTema no es un JSON válido' });
     }
 
-    if (!informacionTema || !informacionTema.campoEstudio || !informacionTema.nivelIntensidad) {
+    if (!informacionTema || !informacionTema.campo || !informacionTema.nivelIntensidad) {
         logger.error('Campos obligatorios faltantes: campoEstudio y nivelIntensidad.');
         return res.status(400).json({ error: 'Campos obligatorios faltantes: campoEstudio y nivelIntensidad.' });
     }
