@@ -418,46 +418,90 @@ router.post('/progresar-plan', async (req, res) => {
         }
 
         // Eliminar plan anterior
-        logger.info(`Eliminando plan anterior para el usuario: ${uid}`);
         await db.collection('planes').doc(uid).delete();
 
-        // Generar nuevo plan
+        // Construir prompt detallado
         const informacionTema = req.body.informacionTema;
-        logger.info('Datos recibidos:', informacionTema); // Log the received data
+        let promptContent = `
+            Actualizar plan existente con:
+            - Campo: ${informacionTema.campo}
+            - Nivel intensidad: ${informacionTema.nivelIntensidad}
+            - Días estudio: ${informacionTema.diasEstudio.join(', ')}
+            - Horas/día: ${JSON.stringify(informacionTema.horasEstudio)}
+            - Progreso completado: 
+              * Tareas: ${informacionTema.tareasCompletadas.map(t => t.titulo).join(', ')}
+              * Objetivos: ${informacionTema.objetivosCompletados.map(o => o.titulo).join(', ')}
+            ${informacionTema.nuevaInformacion ? `- Nueva información: ${informacionTema.nuevaInformacion}` : ''}
+            
+            Generar nueva versión del plan que:
+            1. Continúe desde el último progreso
+            2. Añada nuevos objetivos acordes al nivel actual
+            3. Incluya ejercicios más desafiantes
+        `;
+        let contentSystem = `Eres un asistente que genera planes de estudio personalizados y adaptados a la informacion proporcionada por el usuario:
+                        -Campo a estudiar
+                        -Nivel intensidad
+                        -Horas de estudio por dia
+                        -Días de estudio
+                        -Objetivos completados
+                        -Tareas completadas
+                        -Progreso`;
+        if (informacionTema.campo === 'Ajedrez') {
+            contentSystem += `
+            -Experiencia del jugador 
+            -Tiempo de juego preferido
+            -Elo (Ten muy en cuenta el elo del jugador para crear tareas a corde a su nivel)
+            -Conocimientos previos (Ten muy en cuenta los conocimientos previos del jugador para crear tareas a corde a sus conocimientos y reforzarlos)`
+        } 
+        else if (informacionTema.campo === 'Poker Texas Holdem') {
+            contentSystem += `
+            -Tipo de Poker
+            -Límite de mesas`
+        }               
 
-        if (!informacionTema) {
-            logger.error('informacionTema no proporcionada');
-            return res.status(400).json({ error: 'informacionTema no proporcionada' });
-        }
-
-        let promptContent = `Actualizar plan existente con: 
-            - Progreso completado: ${informacionTema.tareasCompletadas.length} tareas, ${informacionTema.objetivosCompletados.length} objetivos
-            ${informacionTema.nuevaInformacion ? `- Nueva información: ${informacionTema.nuevaInformacion}` : ''}`;
-
-        logger.info('Enviando solicitud a OpenAI para generar nuevo plan');
+        // Usar mismo system message y funciones que en /custom-prompt
         const response = await axios.post(
             'https://api.openai.com/v1/chat/completions',
-            {
+            {  
                 model: "gpt-4o",
-                messages: [{
-                    role: 'system',
-                    content: 'Generar nueva versión del plan considerando el progreso completado y nueva información'
-                }, {
-                    role: 'user',
-                    content: promptContent
-                }]
+                messages: [
+                    {
+                        role: 'system',
+                        content: contentSystem // Reutilizar el system message de /custom-prompt
+                    },
+                    {
+                        role: 'user',
+                        content: truncateString(promptContent, 1000)
+                    }
+                ],
+                functions: [/* Same functions as /custom-prompt */],
+                function_call: { name: "generate_study_plan" },
+                max_tokens: 3000
             },
-            { headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}` } }
+            {
+                headers: {
+                    Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+                    'Content-Type': 'application/json',
+                },
+                timeout: 60000 // 60 segundos
+            }
         );
 
-        logger.info('Respuesta recibida de OpenAI');
-        const nuevoPlan = procesarRespuestaOpenAI(response.data);
-        logger.info('Nuevo plan procesado:', nuevoPlan);
+        // Procesar respuesta de función
+        const functionCall = response.data.choices[0].message.function_call;
+        if (!functionCall?.arguments) throw new Error('Respuesta de OpenAI inválida');
+        
+        const nuevoPlan = JSON.parse(functionCall.arguments);
+        
+        // Validar estructura mínima
+        if (!nuevoPlan.planEstudio || !nuevoPlan.objetivos) {
+            throw new Error('Estructura del plan inválida');
+        }
 
-        logger.info('Guardando nuevo plan en Firestore');
+        // Guardar nuevo plan
         await db.collection('planes').doc(uid).set(nuevoPlan);
-
-        // Actualizar contador de progresiones
+        
+        // Actualizar contador
         if (userData.plan === 'gratuito') {
             await db.collection('users').doc(uid).update({
                 progressCount: admin.firestore.FieldValue.increment(1)
@@ -465,8 +509,9 @@ router.post('/progresar-plan', async (req, res) => {
         }
 
         res.json(nuevoPlan);
+        
     } catch (error) {
-        logger.error('Error al procesar el plan:', error.message);
+        logger.error('Error:', error);
         res.status(500).json({ error: error.message });
     }
 });
