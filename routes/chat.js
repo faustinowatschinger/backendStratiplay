@@ -112,7 +112,8 @@ const eliminarPlanEstudio = async (uid, planId) => {
 router.post('/custom-prompt', async (req, res) => {
     let informacionTema;
     try {
-        informacionTema = req.body.informacionTema; // Asegúrate de acceder correctamente a informacionTema
+        informacionTema = req.body.informacionTema;
+        console.log('Received informacionTema:', informacionTema); // Add this line
     } catch (error) {
         logger.error('Error al analizar informacionTema:', error.message);
         return res.status(400).json({ error: 'informacionTema no es un JSON válido' });
@@ -145,6 +146,9 @@ router.post('/custom-prompt', async (req, res) => {
         // Check if the previous plan should be deleted
         if (req.body.eliminarAnterior) {
             const planId = req.body.planId;
+            if (!planId) {
+                throw new Error('planId no proporcionado');
+            }
             try {
                 const userRef = db.collection('usuarios').doc(uid);
                 const planRef = userRef.collection('planesEstudio').doc(planId);
