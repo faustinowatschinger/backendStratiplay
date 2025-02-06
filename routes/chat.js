@@ -224,6 +224,7 @@ router.post('/custom-prompt', async (req, res) => {
             Información específica para Poker Texas Holdem:
             - Tipo de Poker: ${informacionTema.tipoPoker || 'No especificado'}.
             - Límite de mesas: ${informacionTema.limiteMesa || 'No especificado'}.
+            - Conocimientos previos: ${informacionTema.conocimientosPoker || 'No especificado'}.
         
             Crea un plan para mejorar habilidades en Poker Texas Holdem considerando:
             1. Juego Preflop: Rangos de manos iniciales y estrategias óptimas.
@@ -264,20 +265,19 @@ router.post('/custom-prompt', async (req, res) => {
                             type: "object",
                             properties: {
                                 campoEstudio: { type: "string", description: "El campo de estudio." },
-                                subCampoEstudio: { type: "string", description: "El subcampo de estudio." },
-                                nivelExperiencia: { type: "string", description: "Nivel de experiencia en el tema." },
-                                experiencia: { type: "string", description: "Experiencia previa del usuario." },
                                 nivelIntensidad: { type: "string", description: "Nivel de intensidad del plan de estudio." },
                                 diasEstudio: {
                                     type: "array",
                                     items: { type: "string" },
                                     description: "Días disponibles para estudiar."
                                 },
-                                horasEstudio: {
+                                horasEstudioPorDia: {
                                     type: "object",
                                     additionalProperties: { type: "number" },
                                     description: "Horas de estudio por día."
                                 },
+                                conocimientosAjedrez: { type: "string", description: "Conocimientos previos de ajedrez." },
+                                conocimientosPoker: { type: "string", description: "Conocimaciones previos de poker." },
                                 planEstudio: {
                                     type: "array",
                                     items: {
@@ -316,7 +316,7 @@ router.post('/custom-prompt', async (req, res) => {
                                     }
                                 }
                             },
-                            required: ["campoEstudio", "nivelIntensidad", "diasEstudio", "horasEstudio", "planEstudio", "objetivos"]
+                            required: ["campoEstudio", "nivelIntensidad", "diasEstudio", "horasEstudioPorDia", "planEstudio", "objetivos"]
                         }
                     }
                 ],
