@@ -1,32 +1,23 @@
 import express from 'express';
 import bodyParser from 'body-parser';
-import cors from 'cors';
 import { fileURLToPath } from 'url';
 import path from 'path';
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 import chatCustomPrompt from './routes/chat.js';
 import cancelPlanRouter from './api/cancel-plan.js';
 import progressPlanRouter from './routes/progress-plan.js';
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 const app = express();
 const port = process.env.PORT || 5000;
 
-const corsOptions = {
-  origin: 'https://stratiplay.com',
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-CSRF-Token'],
-  credentials: true,
-  maxAge: 86400
-};
-
-app.use(cors(corsOptions));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 // Rutas
 app.use('/api/chat', chatCustomPrompt);
-app.use('/api', cancelPlanRouter);  // <-- Sin paréntesis extra
+app.use('/api', cancelPlanRouter);
 app.use('/api', progressPlanRouter);
 
 // Archivos estáticos

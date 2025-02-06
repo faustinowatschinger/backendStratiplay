@@ -162,7 +162,9 @@ router.post('/custom-prompt', async (req, res) => {
             -Tipo de Poker
             -Límite de mesas`
         }               
-        let promptContent = `uid del usuario: ${uid}
+        let promptContent = 
+        `
+        uid del usuario: ${uid}
         Campo a estudiar: ${informacionTema.campo}, 
         Nivel intensidad: ${informacionTema.nivelIntensidad},
         Días de estudio: ${informacionTema.diasEstudio?.length > 0 ? informacionTema.diasEstudio.join(', ') : 'No especificado'},
