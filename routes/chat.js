@@ -474,7 +474,70 @@ router.post('/progresar-plan', async (req, res) => {
                         content: truncateString(promptContent, 1000)
                     }
                 ],
-                functions: [/* Same functions as /custom-prompt */],
+                functions: [
+                    {
+                        name: "generate_study_plan",
+                        description: "Genera un plan de estudio personalizado basado en los datos proporcionados.",
+                        parameters: {
+                            type: "object",
+                            properties: {
+                                campoEstudio: { type: "string", description: "El campo de estudio." },
+                                subCampoEstudio: { type: "string", description: "El subcampo de estudio." },
+                                nivelExperiencia: { type: "string", description: "Nivel de experiencia en el tema." },
+                                experiencia: { type: "string", description: "Experiencia previa del usuario." },
+                                nivelIntensidad: { type: "string", description: "Nivel de intensidad del plan de estudio." },
+                                diasEstudio: {
+                                    type: "array",
+                                    items: { type: "string" },
+                                    description: "Días disponibles para estudiar."
+                                },
+                                horasEstudio: {
+                                    type: "object",
+                                    additionalProperties: { type: "number" },
+                                    description: "Horas de estudio por día."
+                                },
+                                planEstudio: {
+                                    type: "array",
+                                    items: {
+                                        type: "object",
+                                        properties: {
+                                            descripcion: { type: "string", description: "Descripción general." },
+                                            dia: { type: "string", description: "Día de la semana." },
+                                            tareas: {
+                                                type: "array",
+                                                items: {
+                                                    type: "object",
+                                                    properties: {
+                                                        titulo: { type: "string", description: "Título de la tarea." },
+                                                        descripcion: { type: "string", description: "Descripción detallada de la tarea." },
+                                                        contenido: { type: "string", description: "Fuentes de información para realizar la tarea (libros, videos, blogs, etc.)." },
+                                                        tiempo: { type: "number", description: "Tiempo estimado para completar la tarea en minutos." },
+                                                        estado: { type: "string", enum: ["esperando", "enProceso", "finalizado"], description: "Estado de la tarea." },
+                                                        prioridad: { type: "string", enum: ["baja", "media", "alta"], description: "Prioridad de la tarea." }
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        required: ["descripcion", "dia", "tareas"]
+                                    }
+                                },
+                                objetivos: {
+                                    type: "array",
+                                    items: {
+                                        type: "object",
+                                        properties: {
+                                            titulo: { type: "string", description: "Título del objetivo." },
+                                            descripcion: { type: "string", description: "Descripción del objetivo." },
+                                            estado: { type: "string", enum: ["esperando", "enProceso", "finalizado"], description: "Estado del objetivo." },
+                                        },
+                                        required: ["titulo", "descripcion"]
+                                    }
+                                }
+                            },
+                            required: ["campoEstudio", "nivelIntensidad", "diasEstudio", "horasEstudio", "planEstudio", "objetivos"]
+                        }
+                    }
+                ],
                 function_call: { name: "generate_study_plan" },
                 max_tokens: 3000
             },
