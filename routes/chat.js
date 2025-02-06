@@ -142,6 +142,12 @@ router.post('/custom-prompt', async (req, res) => {
     }
 
     try {
+        // Check if the previous plan should be deleted
+        if (req.body.eliminarAnterior) {
+            logger.info(`Eliminando plan anterior para el usuario: ${uid}`);
+            await db.collection('planes').doc(uid).delete();
+        }
+
         let contentSystem = `Eres un asistente que genera planes de estudio personalizados y adaptados a la informacion proporcionada por el usuario:
                         -Campo a estudiar
                         -Nivel intensidad
@@ -162,8 +168,7 @@ router.post('/custom-prompt', async (req, res) => {
             -Tipo de Poker
             -Límite de mesas`
         }               
-        let promptContent = 
-        `
+        let promptContent = `
         uid del usuario: ${uid}
         Campo a estudiar: ${informacionTema.campo}, 
         Nivel intensidad: ${informacionTema.nivelIntensidad},
@@ -391,191 +396,6 @@ router.get('/campos-estudiados', async (req, res) => {
     } catch (error) {
         logger.error('Error al obtener los campos estudiados:', error.message);
         return res.status(500).json({ error: 'Error al obtener los campos estudiados', details: error.message });
-    }
-});
-
-router.post('/progresar-plan', async (req, res) => {
-    let uid;
-    try {
-        // Autenticación
-        const idToken = req.headers.authorization?.split(' ')[1];
-        const decodedToken = await admin.auth().verifyIdToken(idToken);
-        uid = decodedToken.uid;
-        logger.info(`Usuario autenticado: ${uid}`);
-    } catch (error) {
-        logger.error('Error de autenticación:', error.message);
-        return res.status(401).json({ error: 'Autenticación fallida' });
-    }
-
-    try {
-        // Verificar límites del plan
-        const userDoc = await db.collection('users').doc(uid).get();
-        const userData = userDoc.data();
-        
-        if (userData.plan === 'gratuito' && userData.progressCount >= 3) {
-            logger.warn('Límite de progresiones alcanzado para el plan gratuito');
-            return res.status(400).json({ error: 'Límite de progresiones alcanzado' });
-        }
-
-        // Eliminar plan anterior
-        await db.collection('planes').doc(uid).delete();
-
-        // Construir prompt detallado
-        const informacionTema = req.body.informacionTema;
-        let promptContent = `
-            Actualizar plan existente con:
-            - Campo: ${informacionTema.campo}
-            - Nivel intensidad: ${informacionTema.nivelIntensidad}
-            - Días estudio: ${informacionTema.diasEstudio.join(', ')}
-            - Horas/día: ${JSON.stringify(informacionTema.horasEstudio)}
-            - Progreso completado: 
-              * Tareas: ${informacionTema.tareasCompletadas.map(t => t.titulo).join(', ')}
-              * Objetivos: ${informacionTema.objetivosCompletados.map(o => o.titulo).join(', ')}
-            ${informacionTema.nuevaInformacion ? `- Nueva información: ${informacionTema.nuevaInformacion}` : ''}
-            
-            Generar nueva versión del plan que:
-            1. Continúe desde el último progreso
-            2. Añada nuevos objetivos acordes al nivel actual
-            3. Incluya ejercicios más desafiantes
-        `;
-        let contentSystem = `Eres un asistente que genera planes de estudio personalizados y adaptados a la informacion proporcionada por el usuario:
-                        -Campo a estudiar
-                        -Nivel intensidad
-                        -Horas de estudio por dia
-                        -Días de estudio
-                        -Objetivos completados
-                        -Tareas completadas
-                        -Progreso`;
-        if (informacionTema.campo === 'Ajedrez') {
-            contentSystem += `
-            -Experiencia del jugador 
-            -Tiempo de juego preferido
-            -Elo (Ten muy en cuenta el elo del jugador para crear tareas a corde a su nivel)
-            -Conocimientos previos (Ten muy en cuenta los conocimientos previos del jugador para crear tareas a corde a sus conocimientos y reforzarlos)`
-        } 
-        else if (informacionTema.campo === 'Poker Texas Holdem') {
-            contentSystem += `
-            -Tipo de Poker
-            -Límite de mesas`
-        }               
-
-        // Usar mismo system message y funciones que en /custom-prompt
-        const response = await axios.post(
-            'https://api.openai.com/v1/chat/completions',
-            {  
-                model: "gpt-4o",
-                messages: [
-                    {
-                        role: 'system',
-                        content: contentSystem // Reutilizar el system message de /custom-prompt
-                    },
-                    {
-                        role: 'user',
-                        content: truncateString(promptContent, 1000)
-                    }
-                ],
-                functions: [
-                    {
-                        name: "generate_study_plan",
-                        description: "Genera un plan de estudio personalizado basado en los datos proporcionados.",
-                        parameters: {
-                            type: "object",
-                            properties: {
-                                campoEstudio: { type: "string", description: "El campo de estudio." },
-                                subCampoEstudio: { type: "string", description: "El subcampo de estudio." },
-                                nivelExperiencia: { type: "string", description: "Nivel de experiencia en el tema." },
-                                experiencia: { type: "string", description: "Experiencia previa del usuario." },
-                                nivelIntensidad: { type: "string", description: "Nivel de intensidad del plan de estudio." },
-                                diasEstudio: {
-                                    type: "array",
-                                    items: { type: "string" },
-                                    description: "Días disponibles para estudiar."
-                                },
-                                horasEstudio: {
-                                    type: "object",
-                                    additionalProperties: { type: "number" },
-                                    description: "Horas de estudio por día."
-                                },
-                                planEstudio: {
-                                    type: "array",
-                                    items: {
-                                        type: "object",
-                                        properties: {
-                                            descripcion: { type: "string", description: "Descripción general." },
-                                            dia: { type: "string", description: "Día de la semana." },
-                                            tareas: {
-                                                type: "array",
-                                                items: {
-                                                    type: "object",
-                                                    properties: {
-                                                        titulo: { type: "string", description: "Título de la tarea." },
-                                                        descripcion: { type: "string", description: "Descripción detallada de la tarea." },
-                                                        contenido: { type: "string", description: "Fuentes de información para realizar la tarea (libros, videos, blogs, etc.)." },
-                                                        tiempo: { type: "number", description: "Tiempo estimado para completar la tarea en minutos." },
-                                                        estado: { type: "string", enum: ["esperando", "enProceso", "finalizado"], description: "Estado de la tarea." },
-                                                        prioridad: { type: "string", enum: ["baja", "media", "alta"], description: "Prioridad de la tarea." }
-                                                    }
-                                                }
-                                            }
-                                        },
-                                        required: ["descripcion", "dia", "tareas"]
-                                    }
-                                },
-                                objetivos: {
-                                    type: "array",
-                                    items: {
-                                        type: "object",
-                                        properties: {
-                                            titulo: { type: "string", description: "Título del objetivo." },
-                                            descripcion: { type: "string", description: "Descripción del objetivo." },
-                                            estado: { type: "string", enum: ["esperando", "enProceso", "finalizado"], description: "Estado del objetivo." },
-                                        },
-                                        required: ["titulo", "descripcion"]
-                                    }
-                                }
-                            },
-                            required: ["campoEstudio", "nivelIntensidad", "diasEstudio", "horasEstudio", "planEstudio", "objetivos"]
-                        }
-                    }
-                ],
-                function_call: { name: "generate_study_plan" },
-                max_tokens: 3000
-            },
-            {
-                headers: {
-                    Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-                    'Content-Type': 'application/json',
-                },
-                timeout: 60000 // 60 segundos
-            }
-        );
-
-        // Procesar respuesta de función
-        const functionCall = response.data.choices[0].message.function_call;
-        if (!functionCall?.arguments) throw new Error('Respuesta de OpenAI inválida');
-        
-        const nuevoPlan = JSON.parse(functionCall.arguments);
-        
-        // Validar estructura mínima
-        if (!nuevoPlan.planEstudio || !nuevoPlan.objetivos) {
-            throw new Error('Estructura del plan inválida');
-        }
-
-        // Guardar nuevo plan
-        await db.collection('planes').doc(uid).set(nuevoPlan);
-        
-        // Actualizar contador
-        if (userData.plan === 'gratuito') {
-            await db.collection('users').doc(uid).update({
-                progressCount: admin.firestore.FieldValue.increment(1)
-            });
-        }
-
-        res.json(nuevoPlan);
-        
-    } catch (error) {
-        logger.error('Error:', error);
-        res.status(500).json({ error: error.message });
     }
 });
 
