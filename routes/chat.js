@@ -264,20 +264,6 @@ router.post('/custom-prompt', async (req, res) => {
                         parameters: {
                             type: "object",
                             properties: {
-                                campoEstudio: { type: "string", description: "El campo de estudio." },
-                                nivelIntensidad: { type: "string", description: "Nivel de intensidad del plan de estudio." },
-                                diasEstudio: {
-                                    type: "array",
-                                    items: { type: "string" },
-                                    description: "Días disponibles para estudiar."
-                                },
-                                horasEstudioPorDia: {
-                                    type: "object",
-                                    additionalProperties: { type: "number" },
-                                    description: "Horas de estudio por día."
-                                },
-                                conocimientosAjedrez: { type: "string", description: "Conocimientos previos de ajedrez." },
-                                conocimientosPoker: { type: "string", description: "Conocimaciones previos de poker." },
                                 planEstudio: {
                                     type: "array",
                                     items: {
@@ -341,8 +327,29 @@ router.post('/custom-prompt', async (req, res) => {
                 responseData = JSON.parse(functionCall.arguments);
                 logger.info('Response data:', responseData);
 
+                const additionalData = {
+                    campoEstudio: informacionTema.campo, 
+                    nivelIntensidad: informacionTema.nivelIntensidad,
+                    diasEstudio: informacionTema.diasEstudio?.length > 0 ? informacionTema.diasEstudio.join(', ') : 'No especificado',
+                    horasEstudio: informacionTema.diasEstudio?.length > 0 ? informacionTema.diasEstudio.map(dia => `${dia}: ${informacionTema.horasEstudio?.[dia] || 'No especificado'}`).join(', ') : 'No especificado',
+                    tareasCompletadas: informacionTema.tareasCompletadas?.map(tarea => tarea.titulo).join(', ') || 'Ninguna',
+                    objetivosCompletados: informacionTema.objetivosCompletados?.map(objetivo => objetivo.titulo).join(', ') || 'Ninguno',
+                };
+
+                if (informacionTema.campo === 'Ajedrez') {
+                    additionalData.experienciaAjedrez = informacionTema.experienciaAjedrez;
+                    additionalData.elo = informacionTema.elo;
+                    additionalData.tiempo = informacionTema.tiempo;
+                    additionalData.conocimientosAjedrez = informacionTema.conocimientosAjedrez;
+                } else if (informacionTema.campo === 'Poker Texas Holdem') {
+                    additionalData.tipoPoker = informacionTema.tipoPoker;
+                    additionalData.limiteMesa = informacionTema.limiteMesa;
+                    additionalData.conocimientosPoker = informacionTema.conocimientosPoker;
+                }
+
                 await guardarPlanEstudio(uid, {
                     ...responseData,
+                    ...additionalData,
                 });
 
                 return res.json({
