@@ -368,57 +368,6 @@ router.post('/custom-prompt', async (req, res) => {
     }
 });
 
-router.delete('/eliminar-plan/:planId', async (req, res) => {
-    const { planId } = req.params;
-
-    try {
-        const idToken = req.headers.authorization?.split(' ')[1];
-        if (!idToken) {
-            return res.status(401).json({ error: 'Token no proporcionado' });
-        }
-
-        const decodedToken = await admin.auth().verifyIdToken(idToken);
-        const uid = decodedToken.uid;
-
-        await eliminarPlanEstudio(uid, planId);
-        return res.status(200).json({ message: 'Plan de estudio eliminado correctamente.' });
-    } catch (error) {
-        logger.error('Error al eliminar el plan de estudio:', error.message);
-        return res.status(500).json({ error: 'Error al eliminar el plan de estudio', details: error.message });
-    }
-});
-
-router.get('/campos-estudiados', async (req, res) => {
-    let uid;
-    try {
-        const idToken = req.headers.authorization?.split(' ')[1];
-        if (!idToken) {
-            throw new Error('Token no proporcionado');
-        }
-
-        const decodedToken = await admin.auth().verifyIdToken(idToken);
-        uid = decodedToken.uid;
-
-        if (!uid) {
-            throw new Error('El token no contiene un UID');
-        }
-    } catch (error) {
-        logger.error('Error al verificar el token:', error.message);
-        return res.status(401).json({ error: 'Autenticación fallida: ' + error.message });
-    }
-
-    try {
-        const userRef = db.collection('usuarios').doc(uid);
-        const planesSnapshot = await userRef.collection('planesEstudio').get();
-        const camposEstudiados = planesSnapshot.docs.map(doc => doc.data().campo);
-
-        return res.json(camposEstudiados);
-    } catch (error) {
-        logger.error('Error al obtener los campos estudiados:', error.message);
-        return res.status(500).json({ error: 'Error al obtener los campos estudiados', details: error.message });
-    }
-});
-
 router.post('/actualizar-estado-tarea', async (req, res) => {
     const { planId, diaIndex, tareaIndex, nuevoEstado, nuevaPrioridad } = req.body;
 
