@@ -172,13 +172,13 @@ router.post('/custom-prompt', async (req, res) => {
                         -Objetivos completados
                         -Tareas completadas
                         -Progreso`;
-        if (informacionTema.campoEstudio === 'Ajedrez') {
+        if (informacionTema.campo === 'Ajedrez') {
             contentSystem += `
             -Experiencia del jugador 
             -Tiempo de juego preferido
             -Elo (Ten muy en cuenta el elo del jugador para crear tareas a acorde a su nivel)
             -Conocimientos previos (Ten muy en cuenta los conocimientos previos del jugador para crear tareas a acorde a sus conocimientos y reforzarlos)`;
-        } else if (informacionTema.campoEstudio === 'Poker Texas Holdem') {
+        } else if (informacionTema.campo === 'Poker Texas Holdem') {
             contentSystem += `
             -Tipo de Poker
             -Límite de mesas`;
@@ -186,7 +186,7 @@ router.post('/custom-prompt', async (req, res) => {
 
         let promptContent = `
         uid del usuario: ${uid}
-        Campo a estudiar: ${informacionTema.campoEstudio}, 
+        Campo a estudiar: ${informacionTema.campo}, 
         Nivel intensidad: ${informacionTema.nivelIntensidad},
         Días de estudio: ${Array.isArray(informacionTema.diasEstudio) && informacionTema.diasEstudio.length > 0 ? informacionTema.diasEstudio.join(', ') : 'No especificado'},
         Horas de estudio por dia: ${Array.isArray(informacionTema.diasEstudio) && informacionTema.diasEstudio.length > 0 ? informacionTema.diasEstudio.map(dia => `${dia}: ${informacionTema.horasEstudio[dia] || 'No especificado'}`).join(', ') : 'No especificado'},
@@ -199,7 +199,7 @@ router.post('/custom-prompt', async (req, res) => {
         - Tiene que poder realizarse en el tiempo disponible y ser realista.
         Para realizar las tareas y los objetivos, adapta el plan al nivel y experiencia del usuario.`;
 
-        if (informacionTema.campoEstudio === 'Ajedrez') {
+        if (informacionTema.campo === 'Ajedrez') {
             promptContent += `
             Información específica para Ajedrez:
             - Experiencia del jugador: ${informacionTema.experienciaAjedrez || 'No especificado'}.
@@ -218,7 +218,7 @@ router.post('/custom-prompt', async (req, res) => {
             - Chess.com, Lichess.org, Chessable.
             - Libros: "100 Finales que debes saber", "Mi sistema".
             - Videos y herramientas de análisis.`;
-        } else if (informacionTema.campoEstudio === 'Poker Texas Holdem') {
+        } else if (informacionTema.campo === 'Poker Texas Holdem') {
             promptContent += `
             Información específica para Poker Texas Holdem:
             - Tipo de Poker: ${informacionTema.tipoPoker || 'No especificado'}.
@@ -328,7 +328,7 @@ router.post('/custom-prompt', async (req, res) => {
 
         // Agregar datos adicionales a la respuesta
         const additionalData = {
-            campoEstudio: informacionTema.campoEstudio, 
+            campo: informacionTema.campo, 
             nivelIntensidad: informacionTema.nivelIntensidad,
             diasEstudio: Array.isArray(informacionTema.diasEstudio) ? informacionTema.diasEstudio.join(', ') : 'No especificado',
             horasEstudio: Array.isArray(informacionTema.diasEstudio) ? informacionTema.diasEstudio.map(dia => `${dia}: ${informacionTema.horasEstudio[dia] || 'No especificado'}`).join(', ') : 'No especificado',
@@ -336,12 +336,12 @@ router.post('/custom-prompt', async (req, res) => {
             objetivosCompletados: Array.isArray(informacionTema.objetivosCompletados) ? informacionTema.objetivosCompletados.map(o => o.titulo).join(', ') : 'Ninguno',
         };
 
-        if (informacionTema.campoEstudio === 'Ajedrez') {
+        if (informacionTema.campo === 'Ajedrez') {
             additionalData.experienciaAjedrez = informacionTema.experienciaAjedrez;
             additionalData.elo = informacionTema.elo;
             additionalData.tiempo = informacionTema.tiempo;
             additionalData.conocimientosAjedrez = informacionTema.conocimientosAjedrez;
-        } else if (informacionTema.campoEstudio === 'Poker Texas Holdem') {
+        } else if (informacionTema.campo === 'Poker Texas Holdem') {
             additionalData.tipoPoker = informacionTema.tipoPoker;
             additionalData.limiteMesa = informacionTema.limiteMesa;
             additionalData.conocimientosPoker = informacionTema.conocimientosPoker;
