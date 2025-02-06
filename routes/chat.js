@@ -155,6 +155,7 @@ router.post('/custom-prompt', async (req, res) => {
                 throw new Error('Error al eliminar el plan de estudio');
             }
         }
+
         let contentSystem = `Eres un asistente que genera planes de estudio personalizados y adaptados a la informacion proporcionada por el usuario:
                         -Campo a estudiar
                         -Nivel intensidad
