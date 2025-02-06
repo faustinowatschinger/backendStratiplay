@@ -119,9 +119,9 @@ router.post('/custom-prompt', async (req, res) => {
         return res.status(400).json({ error: 'informacionTema no es un JSON válido' });
     }
 
-    if (!informacionTema || !informacionTema.campo || !informacionTema.nivelIntensidad) {
-        logger.error('Campos obligatorios faltantes: campo y nivelIntensidad.');
-        return res.status(400).json({ error: 'Campos obligatorios faltantes: campo y nivelIntensidad.' });
+    if (!informacionTema || !informacionTema.campoEstudio || !informacionTema.nivelIntensidad) {
+        logger.error('Campos obligatorios faltantes: campoEstudio y nivelIntensidad.');
+        return res.status(400).json({ error: 'Campos obligatorios faltantes: campoEstudio y nivelIntensidad.' });
     }
 
     let uid;
@@ -130,10 +130,8 @@ router.post('/custom-prompt', async (req, res) => {
         if (!idToken) {
             throw new Error('Token no proporcionado');
         }
-
         const decodedToken = await admin.auth().verifyIdToken(idToken);
         uid = decodedToken.uid;
-
         if (!uid) {
             throw new Error('El token no contiene un UID');
         }
@@ -143,7 +141,7 @@ router.post('/custom-prompt', async (req, res) => {
     }
 
     try {
-        // Check if the previous plan should be deleted
+        // Eliminar solo el plan cuyo ID se envíe
         if (req.body.eliminarAnterior) {
             const planId = req.body.planId;
             if (!planId) {
@@ -152,14 +150,20 @@ router.post('/custom-prompt', async (req, res) => {
             try {
                 const userRef = db.collection('usuarios').doc(uid);
                 const planRef = userRef.collection('planesEstudio').doc(planId);
-                await planRef.delete();
-                logger.info(`Plan de estudio con id ${planId} eliminado exitosamente para el usuario: ${uid}`);
+                const doc = await planRef.get();
+                if (!doc.exists) {
+                    logger.warn(`El documento con id ${planId} no existe en planesEstudio para el usuario ${uid}`);
+                } else {
+                    await planRef.delete();
+                    logger.info(`Plan de estudio con id ${planId} eliminado exitosamente para el usuario: ${uid}`);
+                }
             } catch (error) {
                 logger.error('Error al eliminar el plan de estudio:', error);
                 throw new Error('Error al eliminar el plan de estudio');
             }
         }
 
+        // Construir el prompt usando los nombres de campos correctos
         let contentSystem = `Eres un asistente que genera planes de estudio personalizados y adaptados a la informacion proporcionada por el usuario:
                         -Campo a estudiar
                         -Nivel intensidad
@@ -168,94 +172,81 @@ router.post('/custom-prompt', async (req, res) => {
                         -Objetivos completados
                         -Tareas completadas
                         -Progreso`;
-        if (informacionTema.campo === 'Ajedrez') {
+        if (informacionTema.campoEstudio === 'Ajedrez') {
             contentSystem += `
             -Experiencia del jugador 
             -Tiempo de juego preferido
-            -Elo (Ten muy en cuenta el elo del jugador para crear tareas a corde a su nivel)
-            -Conocimientos previos (Ten muy en cuenta los conocimientos previos del jugador para crear tareas a corde a sus conocimientos y reforzarlos)`
-        } 
-        else if (informacionTema.campo === 'Poker Texas Holdem') {
+            -Elo (Ten muy en cuenta el elo del jugador para crear tareas a acorde a su nivel)
+            -Conocimientos previos (Ten muy en cuenta los conocimientos previos del jugador para crear tareas a acorde a sus conocimientos y reforzarlos)`;
+        } else if (informacionTema.campoEstudio === 'Poker Texas Holdem') {
             contentSystem += `
             -Tipo de Poker
-            -Límite de mesas`
-        }               
+            -Límite de mesas`;
+        }
+
         let promptContent = `
         uid del usuario: ${uid}
-        Campo a estudiar: ${informacionTema.campo}, 
+        Campo a estudiar: ${informacionTema.campoEstudio}, 
         Nivel intensidad: ${informacionTema.nivelIntensidad},
-        Días de estudio: ${informacionTema.diasEstudio?.length > 0 ? informacionTema.diasEstudio.join(', ') : 'No especificado'},
-        Horas de estudio por dia: ${informacionTema.diasEstudio?.length > 0 ? informacionTema.diasEstudio.map(dia => `${dia}: ${informacionTema.horasEstudio?.[dia] || 'No especificado'}`).join(', ') : 'No especificado'},
-        Tareas completadas: ${informacionTema.tareasCompletadas?.map(tarea => tarea.titulo).join(', ') || 'Ninguna'},
-        Objetivos completados: ${informacionTema.objetivosCompletados?.map(objetivo => objetivo.titulo).join(', ') || 'Ninguno'},
+        Días de estudio: ${Array.isArray(informacionTema.diasEstudio) && informacionTema.diasEstudio.length > 0 ? informacionTema.diasEstudio.join(', ') : 'No especificado'},
+        Horas de estudio por dia: ${Array.isArray(informacionTema.diasEstudio) && informacionTema.diasEstudio.length > 0 ? informacionTema.diasEstudio.map(dia => `${dia}: ${informacionTema.horasEstudio[dia] || 'No especificado'}`).join(', ') : 'No especificado'},
+        Tareas completadas: ${Array.isArray(informacionTema.tareasCompletadas) ? informacionTema.tareasCompletadas.map(t => t.titulo).join(', ') : 'Ninguna'},
+        Objetivos completados: ${Array.isArray(informacionTema.objetivosCompletados) ? informacionTema.objetivosCompletados.map(o => o.titulo).join(', ') : 'Ninguno'},
         Necesito un plan de estudio detallado teniendo en cuenta toda la informacion proporcionada, organizando días, incluyendo objetivos claros y tareas específicas. Cada tarea debe tener:
         - Descripción detallada de lo que se debe estudiar.
         - Fuentes recomendadas (libros, videos, blogs, herramientas, etc.).
         - Ejercicios prácticos y evaluaciones para medir el progreso.
         - Tiene que poder realizarse en el tiempo disponible y ser realista.
-        Para realizar las tareas y los objetivos debes tener en cuenta la experiencia, conocimientos del usuario y adaptar el plan a su nivel.`;
+        Para realizar las tareas y los objetivos, adapta el plan al nivel y experiencia del usuario.`;
 
-        if (informacionTema.campo === 'Ajedrez') {
-            console.log(`Informacion de ajedrez enviada por el usuario: - Experiencia del jugador: ${informacionTema.experienciaAjedrez || 'No especificado'}.
-            ${informacionTema.experienciaAjedrez === 'Elo online' ? `- Elo chess.com/lichess del jugador: ${informacionTema.elo || 'No especificado'}.` : `- Elo fide del jugador: ${informacionTema.elo || 'No especificado'}.`}
-            - Tiempo de juego preferido: ${informacionTema.tiempo || 'No especificado'}.
-            - Conocimientos previos: ${informacionTema.conocimientosAjedrez || 'No especificado'}.`)
+        if (informacionTema.campoEstudio === 'Ajedrez') {
             promptContent += `
             Información específica para Ajedrez:
             - Experiencia del jugador: ${informacionTema.experienciaAjedrez || 'No especificado'}.
             ${informacionTema.experienciaAjedrez === 'Elo online' ? `- Elo chess.com/lichess del jugador: ${informacionTema.elo || 'No especificado'}.` : `- Elo fide del jugador: ${informacionTema.elo || 'No especificado'}.`}
             - Tiempo de juego preferido: ${informacionTema.tiempo || 'No especificado'}.
             - Conocimientos previos: ${informacionTema.conocimientosAjedrez || 'No especificado'}.
-
+            
             Crea un plan para mejorar el rendimiento en ajedrez considerando:
-            1. Aperturas: Estudios específicos como Apertura Española, Defensa Siciliana, etc., alineados al elo y tiempo del usuario.
-            2. Táctica: Ejercicios para mejorar combinaciones y cálculos rápidos.
+            1. Aperturas.
+            2. Táctica.
             3. Estrategia y planes en el medio juego.
-            4. Finales: Estudios de finales esenciales como rey y peones, torres, y finales complejos.
-            5. Análisis de partidas propias y ajenas para identificar patrones y errores.
-
+            4. Finales.
+            5. Análisis de partidas.
+            
             Recursos sugeridos:
             - Chess.com, Lichess.org, Chessable.
             - Libros: "100 Finales que debes saber", "Mi sistema".
-            - Videos de instructores reconocidos.
-            - Herramientas como Stockfish y Lichess Analysis Board.`;
-        } else if (informacionTema.campo === 'Poker Texas Holdem') {
+            - Videos y herramientas de análisis.`;
+        } else if (informacionTema.campoEstudio === 'Poker Texas Holdem') {
             promptContent += `
             Información específica para Poker Texas Holdem:
             - Tipo de Poker: ${informacionTema.tipoPoker || 'No especificado'}.
             - Límite de mesas: ${informacionTema.limiteMesa || 'No especificado'}.
             - Conocimientos previos: ${informacionTema.conocimientosPoker || 'No especificado'}.
-        
+            
             Crea un plan para mejorar habilidades en Poker Texas Holdem considerando:
-            1. Juego Preflop: Rangos de manos iniciales y estrategias óptimas.
-            2. Juego Postflop: Conceptos como continuation bets, apuestas de valor, faroles y control del bote.
-            3. Probabilidades y cálculos: Práctica con herramientas como Flopzilla y Equilab.
-            4. Estrategias avanzadas: Adaptación en torneos, cash games y Sit and Go.
-            5. Análisis de manos jugadas: Evaluaciones para corregir errores y optimizar decisiones futuras.
-        
+            1. Juego Preflop.
+            2. Juego Postflop.
+            3. Probabilidades y cálculos.
+            4. Estrategias avanzadas.
+            5. Análisis de manos.
+            
             Recursos sugeridos:
             - PokerStars School, Upswing Poker, Run It Once.
-            - Libros como "The Theory of Poker" y "Harrington on Hold'em".
-            - Videos y simulaciones.
-            - Herramientas como PioSolver y GTO+.`;
+            - Libros y videos especializados.`;
         }
         promptContent += `Por favor, asegúrate de que el plan de estudio sea claro, detallado, fácil de seguir y contenga pasos accionables para que el usuario pueda mejorar continuamente.`;
 
         logger.info('Prompt content:', promptContent);
 
-        const response = await axios.post(
+        const openAIResponse = await axios.post(
             'https://api.openai.com/v1/chat/completions',
             {  
                 model: "gpt-4o",
                 messages: [
-                    {
-                        role: 'system',
-                        content: contentSystem
-                    },
-                    {
-                        role: 'user',
-                        content: truncateString(promptContent, 1000),
-                    }
+                    { role: 'system', content: contentSystem },
+                    { role: 'user', content: truncateString(promptContent, 1000) }
                 ],
                 functions: [
                     {
@@ -278,8 +269,8 @@ router.post('/custom-prompt', async (req, res) => {
                                                     properties: {
                                                         titulo: { type: "string", description: "Título de la tarea." },
                                                         descripcion: { type: "string", description: "Descripción detallada de la tarea." },
-                                                        contenido: { type: "string", description: "Fuentes de información para realizar la tarea (libros, videos, blogs, etc.)." },
-                                                        tiempo: { type: "number", description: "Tiempo estimado para completar la tarea en minutos." },
+                                                        contenido: { type: "string", description: "Fuentes de información para realizar la tarea." },
+                                                        tiempo: { type: "number", description: "Tiempo estimado en minutos." },
                                                         estado: { type: "string", enum: ["esperando", "enProceso", "finalizado"], description: "Estado de la tarea." },
                                                         prioridad: { type: "string", enum: ["baja", "media", "alta"], description: "Prioridad de la tarea." }
                                                     }
@@ -314,59 +305,63 @@ router.post('/custom-prompt', async (req, res) => {
                     Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
                     'Content-Type': 'application/json',
                 },
-                timeout: 60000 // 60 segundos
+                timeout: 60000
             }
         );
 
-        logger.info('Response from OpenAI:', response.data);
+        logger.info('Response from OpenAI:', openAIResponse.data);
 
         let responseData;
         try {
-            const functionCall = response.data.choices[0].message.function_call;
+            const functionCall = openAIResponse.data.choices[0].message.function_call;
             if (functionCall && functionCall.arguments) {
                 responseData = JSON.parse(functionCall.arguments);
                 logger.info('Response data:', responseData);
-
-                const additionalData = {
-                    campoEstudio: informacionTema.campo, 
-                    nivelIntensidad: informacionTema.nivelIntensidad,
-                    diasEstudio: informacionTema.diasEstudio?.length > 0 ? informacionTema.diasEstudio.join(', ') : 'No especificado',
-                    horasEstudio: informacionTema.diasEstudio?.length > 0 ? informacionTema.diasEstudio.map(dia => `${dia}: ${informacionTema.horasEstudio?.[dia] || 'No especificado'}`).join(', ') : 'No especificado',
-                    tareasCompletadas: informacionTema.tareasCompletadas?.map(tarea => tarea.titulo).join(', ') || 'Ninguna',
-                    objetivosCompletados: informacionTema.objetivosCompletados?.map(objetivo => objetivo.titulo).join(', ') || 'Ninguno',
-                };
-
-                if (informacionTema.campo === 'Ajedrez') {
-                    additionalData.experienciaAjedrez = informacionTema.experienciaAjedrez;
-                    additionalData.elo = informacionTema.elo;
-                    additionalData.tiempo = informacionTema.tiempo;
-                    additionalData.conocimientosAjedrez = informacionTema.conocimientosAjedrez;
-                } else if (informacionTema.campo === 'Poker Texas Holdem') {
-                    additionalData.tipoPoker = informacionTema.tipoPoker;
-                    additionalData.limiteMesa = informacionTema.limiteMesa;
-                    additionalData.conocimientosPoker = informacionTema.conocimientosPoker;
-                }
-
-                await guardarPlanEstudio(uid, {
-                    ...responseData,
-                    ...additionalData,
-                });
-
-                return res.json({
-                    ...responseData,
-                });
             } else {
                 throw new Error('La respuesta de OpenAI no contiene una llamada a función válida');
             }
         } catch (parseError) {
             logger.error('Error al analizar la respuesta de OpenAI:', parseError.message);
-            return res.status(500).json({ error: 'Error al analizar la respuesta de OpenAI', details: parseError.message });
+            // Fallback: devolver un objeto con valores predeterminados para evitar que la UI falle
+            responseData = { planEstudio: [], objetivos: [] };
         }
+
+        // Agregar datos adicionales a la respuesta
+        const additionalData = {
+            campoEstudio: informacionTema.campoEstudio, 
+            nivelIntensidad: informacionTema.nivelIntensidad,
+            diasEstudio: Array.isArray(informacionTema.diasEstudio) ? informacionTema.diasEstudio.join(', ') : 'No especificado',
+            horasEstudio: Array.isArray(informacionTema.diasEstudio) ? informacionTema.diasEstudio.map(dia => `${dia}: ${informacionTema.horasEstudio[dia] || 'No especificado'}`).join(', ') : 'No especificado',
+            tareasCompletadas: Array.isArray(informacionTema.tareasCompletadas) ? informacionTema.tareasCompletadas.map(t => t.titulo).join(', ') : 'Ninguna',
+            objetivosCompletados: Array.isArray(informacionTema.objetivosCompletados) ? informacionTema.objetivosCompletados.map(o => o.titulo).join(', ') : 'Ninguno',
+        };
+
+        if (informacionTema.campoEstudio === 'Ajedrez') {
+            additionalData.experienciaAjedrez = informacionTema.experienciaAjedrez;
+            additionalData.elo = informacionTema.elo;
+            additionalData.tiempo = informacionTema.tiempo;
+            additionalData.conocimientosAjedrez = informacionTema.conocimientosAjedrez;
+        } else if (informacionTema.campoEstudio === 'Poker Texas Holdem') {
+            additionalData.tipoPoker = informacionTema.tipoPoker;
+            additionalData.limiteMesa = informacionTema.limiteMesa;
+            additionalData.conocimientosPoker = informacionTema.conocimientosPoker;
+        }
+
+        // Combina la respuesta de OpenAI con los datos adicionales
+        const planNuevo = {
+            ...responseData,
+            ...additionalData,
+        };
+
+        await guardarPlanEstudio(uid, planNuevo);
+
+        return res.json(planNuevo);
     } catch (error) {
         logger.error('Error al procesar el plan de estudio:', error.message);
         return res.status(500).json({ error: 'Error al generar el plan de estudio', details: error.message });
     }
 });
+
 
 router.delete('/eliminar-plan/:planId', async (req, res) => {
     const { planId } = req.params;
