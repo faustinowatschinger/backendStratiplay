@@ -401,6 +401,7 @@ router.post('/progresar-plan', async (req, res) => {
         const idToken = req.headers.authorization?.split(' ')[1];
         const decodedToken = await admin.auth().verifyIdToken(idToken);
         uid = decodedToken.uid;
+        logger.info(`Usuario autenticado: ${uid}`);
     } catch (error) {
         logger.error('Error de autenticación:', error.message);
         return res.status(401).json({ error: 'Autenticación fallida' });
@@ -412,10 +413,12 @@ router.post('/progresar-plan', async (req, res) => {
         const userData = userDoc.data();
         
         if (userData.plan === 'gratuito' && userData.progressCount >= 3) {
+            logger.warn('Límite de progresiones alcanzado para el plan gratuito');
             return res.status(400).json({ error: 'Límite de progresiones alcanzado' });
         }
 
         // Eliminar plan anterior
+        logger.info(`Eliminando plan anterior para el usuario: ${uid}`);
         await db.collection('planes').doc(uid).delete();
 
         // Generar nuevo plan
@@ -429,7 +432,7 @@ router.post('/progresar-plan', async (req, res) => {
             - Progreso completado: ${informacionTema.tareasCompletadas.length} tareas, ${informacionTema.objetivosCompletados.length} objetivos
             ${informacionTema.nuevaInformacion ? `- Nueva información: ${informacionTema.nuevaInformacion}` : ''}`;
 
-        // Llamada a OpenAI (similar a /custom-prompt)
+        logger.info('Enviando solicitud a OpenAI para generar nuevo plan');
         const response = await axios.post(
             'https://api.openai.com/v1/chat/completions',
             {
@@ -445,8 +448,11 @@ router.post('/progresar-plan', async (req, res) => {
             { headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}` } }
         );
 
-        // Guardar nuevo plan
+        logger.info('Respuesta recibida de OpenAI');
         const nuevoPlan = procesarRespuestaOpenAI(response.data);
+        logger.info('Nuevo plan procesado:', nuevoPlan);
+
+        logger.info('Guardando nuevo plan en Firestore');
         await db.collection('planes').doc(uid).set(nuevoPlan);
 
         // Actualizar contador de progresiones
