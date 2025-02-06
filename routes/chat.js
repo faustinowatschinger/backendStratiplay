@@ -397,64 +397,71 @@ router.get('/campos-estudiados', async (req, res) => {
 router.post('/progresar-plan', async (req, res) => {
     let uid;
     try {
-      // Autenticación
-      const idToken = req.headers.authorization?.split(' ')[1];
-      const decodedToken = await admin.auth().verifyIdToken(idToken);
-      uid = decodedToken.uid;
+        // Autenticación
+        const idToken = req.headers.authorization?.split(' ')[1];
+        const decodedToken = await admin.auth().verifyIdToken(idToken);
+        uid = decodedToken.uid;
     } catch (error) {
-      return res.status(401).json({ error: 'Autenticación fallida' });
+        logger.error('Error de autenticación:', error.message);
+        return res.status(401).json({ error: 'Autenticación fallida' });
     }
-  
+
     try {
-      // Verificar límites del plan
-      const userDoc = await db.collection('users').doc(uid).get();
-      const userData = userDoc.data();
-      
-      if (userData.plan === 'gratuito' && userData.progressCount >= 3) {
-        return res.status(400).json({ error: 'Límite de progresiones alcanzado' });
-      }
-  
-      // Eliminar plan anterior
-      await db.collection('planes').doc(uid).delete();
-  
-      // Generar nuevo plan
-      const informacionTema = req.body.informacionTema;
-      let promptContent = `Actualizar plan existente con: 
-        - Progreso completado: ${informacionTema.tareasCompletadas.length} tareas, ${informacionTema.objetivosCompletados.length} objetivos
-        ${informacionTema.nuevaInformacion ? `- Nueva información: ${informacionTema.nuevaInformacion}` : ''}`;
-  
-      // Llamada a OpenAI (similar a /custom-prompt)
-      const response = await axios.post(
-        'https://api.openai.com/v1/chat/completions',
-        {
-          model: "gpt-4o",
-          messages: [{
-            role: 'system',
-            content: 'Generar nueva versión del plan considerando el progreso completado y nueva información'
-          }, {
-            role: 'user',
-            content: promptContent
-          }]
-        },
-        { headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}` } }
-      );
-  
-      // Guardar nuevo plan
-      const nuevoPlan = procesarRespuestaOpenAI(response.data);
-      await db.collection('planes').doc(uid).set(nuevoPlan);
-  
-      // Actualizar contador de progresiones
-      if (userData.plan === 'gratuito') {
-        await db.collection('users').doc(uid).update({
-          progressCount: admin.firestore.FieldValue.increment(1)
-        });
-      }
-  
-      res.json(nuevoPlan);
+        // Verificar límites del plan
+        const userDoc = await db.collection('users').doc(uid).get();
+        const userData = userDoc.data();
+        
+        if (userData.plan === 'gratuito' && userData.progressCount >= 3) {
+            return res.status(400).json({ error: 'Límite de progresiones alcanzado' });
+        }
+
+        // Eliminar plan anterior
+        await db.collection('planes').doc(uid).delete();
+
+        // Generar nuevo plan
+        const informacionTema = req.body.informacionTema;
+        if (!informacionTema) {
+            logger.error('informacionTema no proporcionada');
+            return res.status(400).json({ error: 'informacionTema no proporcionada' });
+        }
+
+        let promptContent = `Actualizar plan existente con: 
+            - Progreso completado: ${informacionTema.tareasCompletadas.length} tareas, ${informacionTema.objetivosCompletados.length} objetivos
+            ${informacionTema.nuevaInformacion ? `- Nueva información: ${informacionTema.nuevaInformacion}` : ''}`;
+
+        // Llamada a OpenAI (similar a /custom-prompt)
+        const response = await axios.post(
+            'https://api.openai.com/v1/chat/completions',
+            {
+                model: "gpt-4o",
+                messages: [{
+                    role: 'system',
+                    content: 'Generar nueva versión del plan considerando el progreso completado y nueva información'
+                }, {
+                    role: 'user',
+                    content: promptContent
+                }]
+            },
+            { headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}` } }
+        );
+
+        // Guardar nuevo plan
+        const nuevoPlan = procesarRespuestaOpenAI(response.data);
+        await db.collection('planes').doc(uid).set(nuevoPlan);
+
+        // Actualizar contador de progresiones
+        if (userData.plan === 'gratuito') {
+            await db.collection('users').doc(uid).update({
+                progressCount: admin.firestore.FieldValue.increment(1)
+            });
+        }
+
+        res.json(nuevoPlan);
     } catch (error) {
-      res.status(500).json({ error: error.message });
+        logger.error('Error al procesar el plan:', error.message);
+        res.status(500).json({ error: error.message });
     }
-  });
+});
 
 router.post('/actualizar-estado-tarea', async (req, res) => {
     const { planId, diaIndex, tareaIndex, nuevoEstado, nuevaPrioridad } = req.body;
