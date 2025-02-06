@@ -144,10 +144,14 @@ router.post('/custom-prompt', async (req, res) => {
     try {
         // Check if the previous plan should be deleted
         if (req.body.eliminarAnterior) {
-            logger.info(`Eliminando plan anterior para el usuario: ${uid}`);
-            await db.collection('planesEstudio').doc(uid).delete();
+            const planId = req.body.planId;
+            if (planId) {
+                logger.info(`Eliminando plan de estudio con id ${planId} para el usuario: ${uid}`);
+                await eliminarPlanEstudio(uid, planId);
+            } else {
+                logger.warn(`No se proporcionó un planId para eliminar para el usuario: ${uid}`);
+            }
         }
-
         let contentSystem = `Eres un asistente que genera planes de estudio personalizados y adaptados a la informacion proporcionada por el usuario:
                         -Campo a estudiar
                         -Nivel intensidad
