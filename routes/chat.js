@@ -141,6 +141,26 @@ router.post('/custom-prompt', async (req, res) => {
     }
 
     try {
+
+        // Convierte una cadena del formato "lunes: 1, miercoles: 1, martes: 1, jueves: 1, viernes: 1" en un objeto
+const parseHorasString = (horasStr) => {
+    if (typeof horasStr !== 'string' || horasStr.trim() === '') {
+      return {};
+    }
+    const obj = {};
+    // Separa cada par "día: valor" usando la coma
+    const pairs = horasStr.split(',').map(item => item.trim());
+    pairs.forEach(pair => {
+      const parts = pair.split(':');
+      if (parts.length === 2) {
+        const dia = parts[0].trim();
+        const valor = parts[1].trim();
+        obj[dia] = valor;
+      }
+    });
+    return obj;
+  };
+  
         // Eliminar solo el plan cuyo ID se envíe
         if (req.body.eliminarAnterior) {
             const planId = req.body.planId;
@@ -184,31 +204,39 @@ router.post('/custom-prompt', async (req, res) => {
             -Límite de mesas`;
         }
 
-        let diasArray = Array.isArray(informacionTema.diasEstudio) 
-  ? informacionTema.diasEstudio 
-  : typeof informacionTema.diasEstudio === 'string' 
-    ? informacionTema.diasEstudio.split(',').map(dia => dia.trim()) 
-    : [];
+        // Procesar días: Si ya es cadena, se convierte en array
+let diasArray = Array.isArray(informacionTema.diasEstudio)
+? informacionTema.diasEstudio
+: (typeof informacionTema.diasEstudio === 'string'
+    ? informacionTema.diasEstudio.split(',').map(dia => dia.trim())
+    : []);
 
-let horasEstudioObj = typeof informacionTema.horasEstudio === 'object' && informacionTema.horasEstudio !== null 
-  ? informacionTema.horasEstudio 
-  : {};
+// Procesar horas: Si es objeto, se usa tal cual; si es cadena, se parsea
+let horasEstudioObj;
+if (typeof informacionTema.horasEstudio === 'object' && informacionTema.horasEstudio !== null) {
+horasEstudioObj = informacionTema.horasEstudio;
+} else if (typeof informacionTema.horasEstudio === 'string') {
+horasEstudioObj = parseHorasString(informacionTema.horasEstudio);
+} else {
+horasEstudioObj = {};
+}
 
 let promptContent = `
-    uid del usuario: ${uid}
-    Campo a estudiar: ${informacionTema.campo}, 
-    Nivel intensidad: ${informacionTema.nivelIntensidad},
-    Días de estudio: ${diasArray.length > 0 ? diasArray.join(', ') : 'No especificado'},
-    Horas de estudio por día: ${diasArray.length > 0 ? diasArray.map(dia => `${dia}: ${horasEstudioObj[dia] || 'No especificado'}`).join(', ') : 'No especificado'},
-    Tareas completadas: ${Array.isArray(informacionTema.tareasCompletadas) ? informacionTema.tareasCompletadas.map(t => t.titulo).join(', ') : 'Ninguna'},
-    Objetivos completados: ${Array.isArray(informacionTema.objetivosCompletados) ? informacionTema.objetivosCompletados.map(o => o.titulo).join(', ') : 'Ninguno'},
-    Necesito un plan de estudio detallado teniendo en cuenta toda la información proporcionada, organizando días, incluyendo objetivos claros y tareas específicas. Cada tarea debe tener:
-    - Descripción detallada de lo que se debe estudiar.
-    - Fuentes recomendadas (libros, videos, blogs, herramientas, etc.).
-    - Ejercicios prácticos y evaluaciones para medir el progreso.
-    - Tiene que poder realizarse en el tiempo disponible y ser realista.
-    Para realizar las tareas y los objetivos, adapta el plan al nivel y experiencia del usuario.
+  uid del usuario: ${uid}
+  Campo a estudiar: ${informacionTema.campo}, 
+  Nivel intensidad: ${informacionTema.nivelIntensidad},
+  Días de estudio: ${diasArray.length > 0 ? diasArray.join(', ') : 'No especificado'},
+  Horas de estudio por día: ${diasArray.length > 0 ? diasArray.map(dia => `${dia}: ${horasEstudioObj[dia] || 'No especificado'}`).join(', ') : 'No especificado'},
+  Tareas completadas: ${Array.isArray(informacionTema.tareasCompletadas) ? informacionTema.tareasCompletadas.map(t => t.titulo).join(', ') : 'Ninguna'},
+  Objetivos completados: ${Array.isArray(informacionTema.objetivosCompletados) ? informacionTema.objetivosCompletados.map(o => o.titulo).join(', ') : 'Ninguno'},
+  Necesito un plan de estudio detallado teniendo en cuenta toda la información proporcionada, organizando días, incluyendo objetivos claros y tareas específicas. Cada tarea debe tener:
+  - Descripción detallada de lo que se debe estudiar.
+  - Fuentes recomendadas (libros, videos, blogs, herramientas, etc.).
+  - Ejercicios prácticos y evaluaciones para medir el progreso.
+  - Debe poder realizarse en el tiempo disponible y ser realista.
+  Para realizar las tareas y los objetivos, adapta el plan al nivel y experiencia del usuario.
 `;
+
 
         if (informacionTema.campo === 'Ajedrez') {
             promptContent += `
