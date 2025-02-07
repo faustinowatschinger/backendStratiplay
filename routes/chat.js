@@ -327,14 +327,26 @@ router.post('/custom-prompt', async (req, res) => {
         }
 
         // Agregar datos adicionales a la respuesta
-        const additionalData = {
-            campo: informacionTema.campo, 
-            nivelIntensidad: informacionTema.nivelIntensidad,
-            diasEstudio: Array.isArray(informacionTema.diasEstudio) ? informacionTema.diasEstudio.join(', ') : 'No especificado',
-            horasEstudio: Array.isArray(informacionTema.diasEstudio) ? informacionTema.diasEstudio.map(dia => `${dia}: ${informacionTema.horasEstudio[dia] || 'No especificado'}`).join(', ') : 'No especificado',
-            tareasCompletadas: Array.isArray(informacionTema.tareasCompletadas) ? informacionTema.tareasCompletadas.map(t => t.titulo).join(', ') : 'Ninguna',
-            objetivosCompletados: Array.isArray(informacionTema.objetivosCompletados) ? informacionTema.objetivosCompletados.map(o => o.titulo).join(', ') : 'Ninguno',
-        };
+        const processedDias = typeof informacionTema.diasEstudio === 'string'
+  ? informacionTema.diasEstudio
+  : Array.isArray(informacionTema.diasEstudio)
+    ? informacionTema.diasEstudio.join(', ')
+    : 'No especificado';
+
+const processedHoras = typeof informacionTema.horasEstudio === 'string'
+  ? informacionTema.horasEstudio
+  : (Array.isArray(informacionTema.diasEstudio)
+      ? informacionTema.diasEstudio.map(dia => `${dia}: ${informacionTema.horasEstudio[dia] || 'No especificado'}`).join(', ')
+      : 'No especificado');
+
+const additionalData = {
+  campo: informacionTema.campo, 
+  nivelIntensidad: informacionTema.nivelIntensidad,
+  diasEstudio: processedDias,
+  horasEstudio: processedHoras,
+  tareasCompletadas: Array.isArray(informacionTema.tareasCompletadas) ? informacionTema.tareasCompletadas.map(t => t.titulo).join(', ') : 'Ninguna',
+  objetivosCompletados: Array.isArray(informacionTema.objetivosCompletados) ? informacionTema.objetivosCompletados.map(o => o.titulo).join(', ') : 'Ninguno',
+};
 
         if (informacionTema.campo === 'Ajedrez') {
             additionalData.experienciaAjedrez = informacionTema.experienciaAjedrez;
