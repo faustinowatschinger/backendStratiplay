@@ -184,20 +184,31 @@ router.post('/custom-prompt', async (req, res) => {
             -Límite de mesas`;
         }
 
-        let promptContent = `
-        uid del usuario: ${uid}
-        Campo a estudiar: ${informacionTema.campo}, 
-        Nivel intensidad: ${informacionTema.nivelIntensidad},
-        Días de estudio: ${Array.isArray(informacionTema.diasEstudio) && informacionTema.diasEstudio.length > 0 ? informacionTema.diasEstudio.join(', ') : 'No especificado'},
-        Horas de estudio por dia: ${Array.isArray(informacionTema.diasEstudio) && informacionTema.diasEstudio.length > 0 ? informacionTema.diasEstudio.map(dia => `${dia}: ${informacionTema.horasEstudio[dia] || 'No especificado'}`).join(', ') : 'No especificado'},
-        Tareas completadas: ${Array.isArray(informacionTema.tareasCompletadas) ? informacionTema.tareasCompletadas.map(t => t.titulo).join(', ') : 'Ninguna'},
-        Objetivos completados: ${Array.isArray(informacionTema.objetivosCompletados) ? informacionTema.objetivosCompletados.map(o => o.titulo).join(', ') : 'Ninguno'},
-        Necesito un plan de estudio detallado teniendo en cuenta toda la informacion proporcionada, organizando días, incluyendo objetivos claros y tareas específicas. Cada tarea debe tener:
-        - Descripción detallada de lo que se debe estudiar.
-        - Fuentes recomendadas (libros, videos, blogs, herramientas, etc.).
-        - Ejercicios prácticos y evaluaciones para medir el progreso.
-        - Tiene que poder realizarse en el tiempo disponible y ser realista.
-        Para realizar las tareas y los objetivos, adapta el plan al nivel y experiencia del usuario.`;
+        let diasArray = Array.isArray(informacionTema.diasEstudio) 
+  ? informacionTema.diasEstudio 
+  : typeof informacionTema.diasEstudio === 'string' 
+    ? informacionTema.diasEstudio.split(',').map(dia => dia.trim()) 
+    : [];
+
+let horasEstudioObj = typeof informacionTema.horasEstudio === 'object' && informacionTema.horasEstudio !== null 
+  ? informacionTema.horasEstudio 
+  : {};
+
+let promptContent = `
+    uid del usuario: ${uid}
+    Campo a estudiar: ${informacionTema.campo}, 
+    Nivel intensidad: ${informacionTema.nivelIntensidad},
+    Días de estudio: ${diasArray.length > 0 ? diasArray.join(', ') : 'No especificado'},
+    Horas de estudio por día: ${diasArray.length > 0 ? diasArray.map(dia => `${dia}: ${horasEstudioObj[dia] || 'No especificado'}`).join(', ') : 'No especificado'},
+    Tareas completadas: ${Array.isArray(informacionTema.tareasCompletadas) ? informacionTema.tareasCompletadas.map(t => t.titulo).join(', ') : 'Ninguna'},
+    Objetivos completados: ${Array.isArray(informacionTema.objetivosCompletados) ? informacionTema.objetivosCompletados.map(o => o.titulo).join(', ') : 'Ninguno'},
+    Necesito un plan de estudio detallado teniendo en cuenta toda la información proporcionada, organizando días, incluyendo objetivos claros y tareas específicas. Cada tarea debe tener:
+    - Descripción detallada de lo que se debe estudiar.
+    - Fuentes recomendadas (libros, videos, blogs, herramientas, etc.).
+    - Ejercicios prácticos y evaluaciones para medir el progreso.
+    - Tiene que poder realizarse en el tiempo disponible y ser realista.
+    Para realizar las tareas y los objetivos, adapta el plan al nivel y experiencia del usuario.
+`;
 
         if (informacionTema.campo === 'Ajedrez') {
             promptContent += `
