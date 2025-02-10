@@ -3,7 +3,6 @@ import bodyParser from 'body-parser';
 import { fileURLToPath } from 'url';
 import path from 'path';
 import chatCustomPrompt from './routes/chat.js';
-import cancelPlanRouter from './api/cancel-plan.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -16,7 +15,6 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 // Rutas
 app.use('/api/chat', chatCustomPrompt);
-app.use('/api', cancelPlanRouter);
 
 // Archivos estáticos
 app.use(express.static(path.join(__dirname, 'build')));
