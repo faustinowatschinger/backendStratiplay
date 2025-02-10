@@ -4,10 +4,13 @@ import admin from 'firebase-admin';
 import winston from 'winston';
 import multer from 'multer';
 import dotenv from 'dotenv';
+import { doc, getDoc, updateDoc, setDoc } from 'firebase/firestore';
+import { db } from '../firebase';
+
 
 dotenv.config();
 const upload = multer();
-const router = express.Router();
+const router = express.Router()
 
 import serviceAccount from '../config/ordo-62889-firebase-adminsdk-zl2wb-dd93e17d22.json' assert { type: 'json' };
 if (!admin.apps.length) {
@@ -24,6 +27,7 @@ const logger = winston.createLogger({
         new winston.transports.Console({ format: winston.format.simple() })
     ]
 });
+
 
 const actualizarEstadoTarea = async (uid, planId, diaIndex, tareaIndex, nuevoEstado, nuevaPrioridad) => {
     try {
@@ -87,6 +91,11 @@ const guardarPlanEstudio = async (uid, planEstudio) => {
     try {
         const userRef = db.collection('usuarios').doc(uid);
         const planRef = userRef.collection('planesEstudio').doc();
+        const planConFecha = {
+            ...planEstudio,
+            createdAt: new Date().toISOString()
+        };
+        await planRef.set(planConFecha);
         await planRef.set(planEstudio);
         logger.info('Plan de estudio guardado exitosamente en la subcolección del usuario');
     } catch (error) {
