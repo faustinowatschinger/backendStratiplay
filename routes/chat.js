@@ -18,7 +18,6 @@ if (!admin.apps.length) {
         credential: admin.credential.cert(serviceAccount),
     });
 }
-const db = admin.firestore();
 
 // Logger de errores
 const logger = winston.createLogger({
