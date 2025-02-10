@@ -88,19 +88,22 @@ const guardarPlanEstudio = async (uid, planEstudio) => {
     try {
         const userRef = db.collection('usuarios').doc(uid);
         const planRef = userRef.collection('planesEstudio').doc();
+        const createdAt = new Date().toISOString();
         // Combina el plan original con el campo createdAt
         const planConFecha = {
             ...planEstudio,
-            createdAt: new Date().toISOString()
+            createdAt
         };
         await planRef.set(planConFecha);
         logger.info('Plan de estudio guardado exitosamente en la subcolección del usuario');
-        return planRef.id; // Opcional, si necesitas el ID del plan
+        // Retornamos el id del plan y el objeto completo (incluyendo createdAt)
+        return { id: planRef.id, ...planConFecha };
     } catch (error) {
         logger.error('Error al guardar el plan de estudio en la subcolección:', error);
         throw new Error('Error al guardar el plan de estudio');
     }
 };
+
 
 const eliminarPlanEstudio = async (uid, planId) => {
     try {
