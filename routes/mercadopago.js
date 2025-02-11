@@ -1,4 +1,3 @@
-// routes/mercadopago.js
 import { Router } from 'express';
 import mercadopago from 'mercadopago';
 
@@ -7,51 +6,51 @@ const router = Router();
 // Configuración del SDK de Mercado Pago con tu token
 mercadopago.configurations.setAccessToken(process.env.MERCADO_PAGO_ACCESS_TOKEN);
 
-
-// Endpoint para crear la suscripción (preapproval)
-router.post('/create-preapproval', async (req, res) => {
+// Endpoint para crear la preferencia de pago
+router.post('/create-preference', async (req, res) => {
   try {
     const { plan, userEmail } = req.body;
 
-    // Define los datos de la suscripción según el plan seleccionado
+    // Define los datos de la preferencia según el plan seleccionado
     let transaction_amount;
-    let reason;
+    let description;
     if (plan === 'basic') {
       transaction_amount = 2.99;
-      reason = "Suscripción - Plan Básico";
+      description = "Suscripción - Plan Básico";
     } else if (plan === 'pro') {
       transaction_amount = 4.99;
-      reason = "Suscripción - Plan Pro";
+      description = "Suscripción - Plan Pro";
     } else {
       return res.status(400).json({ error: "Plan inválido" });
     }
 
-    // Configuración de la suscripción mensual
-    const preapprovalData = {
-      reason,
-      auto_recurring: {
-        frequency: 1,
-        frequency_type: "months",
-        transaction_amount,
-        currency_id: "USD",
-        // La fecha de inicio se puede establecer como la actual o con un desfase
-        start_date: new Date().toISOString(),
+    // Configuración de la preferencia de pago
+    const preference = {
+      items: [
+        {
+          title: description,
+          unit_price: transaction_amount,
+          quantity: 1,
+        },
+      ],
+      payer: {
+        email: userEmail,
       },
-      back_url: {
+      back_urls: {
         success: "https://stratiplay.com/success",
         failure: "https://stratiplay.com/failure",
         pending: "https://stratiplay.com/pending",
       },
-      payer_email: userEmail,
+      auto_return: "approved",
     };
 
-    const response = await mercadopago.preapproval.create(preapprovalData);
+    const response = await mercadopago.preferences.create(preference);
 
-    // La respuesta incluye un "init_point" donde el usuario debe ser redirigido para confirmar la suscripción
-    return res.json({ init_point: response.body.init_point, preapproval_id: response.body.id });
+    // La respuesta incluye un "preference_id" que se debe devolver al frontend
+    return res.json({ preference_id: response.body.id });
   } catch (error) {
-    console.error("Error al crear la preaprobación:", error);
-    return res.status(500).json({ error: "Error al crear la suscripción" });
+    console.error("Error al crear la preferencia de pago:", error);
+    return res.status(500).json({ error: "Error al crear la preferencia de pago" });
   }
 });
 
