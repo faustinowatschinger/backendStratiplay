@@ -1,16 +1,17 @@
 // routes/mercadopago.js
 import { Router } from 'express';
-import pkg from 'mercadopago';
-const mercadopago = pkg.default || pkg;
+import * as mercadopago from 'mercadopago';
 
 const router = Router();
 
 // Configuración del SDK de Mercado Pago con tu token
-mercadopago.configurations.setAccessToken(process.env.MERCADO_PAGO_ACCESS_TOKEN);
+mercadopago.configure({
+  access_token: process.env.MERCADO_PAGO_ACCESS_TOKEN,
+});
 
 // Endpoint para crear la preferencia de pago
 router.post('/create-preference', async (req, res) => {
-    console.log("Mercado Pago Access Token:", process.env.MERCADO_PAGO_ACCESS_TOKEN);
+  console.log("Mercado Pago Access Token:", process.env.MERCADO_PAGO_ACCESS_TOKEN);
   try {
     const { plan, userEmail } = req.body;
 
