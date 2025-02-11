@@ -1,13 +1,10 @@
-import { Router } from 'express';
-import pkg from 'mercadopago';
-const mp = pkg.default || pkg; // usa la exportación por defecto
+const { Router } = require('express');
+const mercadopago = require('mercadopago');
 
 const router = Router();
 
 // Configuración del SDK de Mercado Pago con tu token
-mp.configure({
-  access_token: process.env.MERCADO_PAGO_ACCESS_TOKEN,
-});
+mercadopago.configurations.setAccessToken(process.env.MERCADO_PAGO_ACCESS_TOKEN);
 
 // Endpoint para crear la preferencia de pago
 router.post('/create-preference', async (req, res) => {
@@ -15,9 +12,7 @@ router.post('/create-preference', async (req, res) => {
   try {
     const { plan, userEmail } = req.body;
 
-    // Define los datos de la preferencia según el plan seleccionado
-    let transaction_amount;
-    let description;
+    let transaction_amount, description;
     if (plan === 'basic') {
       transaction_amount = 2.99;
       description = "Suscripción - Plan Básico";
@@ -28,7 +23,6 @@ router.post('/create-preference', async (req, res) => {
       return res.status(400).json({ error: "Plan inválido" });
     }
 
-    // Configuración de la preferencia de pago
     const preference = {
       items: [
         {
@@ -37,9 +31,7 @@ router.post('/create-preference', async (req, res) => {
           quantity: 1,
         },
       ],
-      payer: {
-        email: userEmail,
-      },
+      payer: { email: userEmail },
       back_urls: {
         success: "https://stratiplay.com/success",
         failure: "https://stratiplay.com/failure",
@@ -48,9 +40,7 @@ router.post('/create-preference', async (req, res) => {
       auto_return: "approved",
     };
 
-    const response = await mp.preferences.create(preference);
-
-    // La respuesta incluye un "preference_id" que se debe devolver al frontend
+    const response = await mercadopago.preferences.create(preference);
     return res.json({ preference_id: response.body.id });
   } catch (error) {
     console.error("Error al crear la preferencia de pago:", error);
@@ -62,7 +52,7 @@ router.post('/create-preference', async (req, res) => {
 router.post('/cancel-preapproval', async (req, res) => {
   try {
     const { preapproval_id } = req.body;
-    const response = await mp.preapproval.cancel(preapproval_id);
+    const response = await mercadopago.preapproval.cancel(preapproval_id);
     return res.json({ status: response.body.status });
   } catch (error) {
     console.error("Error al cancelar la suscripción:", error);
@@ -70,4 +60,4 @@ router.post('/cancel-preapproval', async (req, res) => {
   }
 });
 
-export default router;
+module.exports = router;
