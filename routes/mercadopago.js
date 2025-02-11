@@ -1,5 +1,6 @@
+// routes/mercadopago.js
 import { Router } from 'express';
-import mercadopago from 'mercadopago';
+import * as mercadopago from 'mercadopago';
 
 const router = Router();
 
