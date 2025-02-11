@@ -5,9 +5,8 @@ import mercadopago from 'mercadopago';
 const router = Router();
 
 // Configuración del SDK de Mercado Pago con tu token
-mercadopago.configure({
-  access_token: process.env.MERCADO_PAGO_ACCESS_TOKEN,
-});
+mercadopago.configurations.setAccessToken(process.env.MERCADO_PAGO_ACCESS_TOKEN);
+
 
 // Endpoint para crear la suscripción (preapproval)
 router.post('/create-preapproval', async (req, res) => {
@@ -39,9 +38,9 @@ router.post('/create-preapproval', async (req, res) => {
         start_date: new Date().toISOString(),
       },
       back_url: {
-        success: "https://tudominio.com/success",
-        failure: "https://tudominio.com/failure",
-        pending: "https://tudominio.com/pending",
+        success: "https://stratiplay.com/success",
+        failure: "https://stratiplay.com/failure",
+        pending: "https://stratiplay.com/pending",
       },
       payer_email: userEmail,
     };
