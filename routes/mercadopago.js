@@ -1,12 +1,11 @@
-const { Router } = require('express');
-const mercadopago = require('mercadopago');
+import { Router } from 'express';
+import mercadopago from 'mercadopago';
 
 const router = Router();
 
-// Configuración del SDK de Mercado Pago con tu token
+// Usa la API del SDK (manteniendo setAccessToken)
 mercadopago.configurations.setAccessToken(process.env.MERCADO_PAGO_ACCESS_TOKEN);
 
-// Endpoint para crear la preferencia de pago
 router.post('/create-preference', async (req, res) => {
   console.log("Mercado Pago Access Token:", process.env.MERCADO_PAGO_ACCESS_TOKEN);
   try {
@@ -48,7 +47,6 @@ router.post('/create-preference', async (req, res) => {
   }
 });
 
-// Endpoint para cancelar una suscripción
 router.post('/cancel-preapproval', async (req, res) => {
   try {
     const { preapproval_id } = req.body;
@@ -60,4 +58,4 @@ router.post('/cancel-preapproval', async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;
