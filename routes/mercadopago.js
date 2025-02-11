@@ -1,12 +1,12 @@
-// routes/mercadopago.js
 import { Router } from 'express';
-import pkg from 'mercadopago';
-const { configurations, preferences, preapproval } = pkg;
+import mercadopago from 'mercadopago';
 
 const router = Router();
 
 // Configuración del SDK de Mercado Pago con tu token
-configurations.setAccessToken(process.env.MERCADO_PAGO_ACCESS_TOKEN);
+mercadopago.configure({
+  access_token: process.env.MERCADO_PAGO_ACCESS_TOKEN,
+});
 
 // Endpoint para crear la preferencia de pago
 router.post('/create-preference', async (req, res) => {
@@ -47,7 +47,7 @@ router.post('/create-preference', async (req, res) => {
       auto_return: "approved",
     };
 
-    const response = await preferences.create(preference);
+    const response = await mercadopago.preferences.create(preference);
 
     // La respuesta incluye un "preference_id" que se debe devolver al frontend
     return res.json({ preference_id: response.body.id });
@@ -61,7 +61,7 @@ router.post('/create-preference', async (req, res) => {
 router.post('/cancel-preapproval', async (req, res) => {
   try {
     const { preapproval_id } = req.body;
-    const response = await preapproval.cancel(preapproval_id);
+    const response = await mercadopago.preapproval.cancel(preapproval_id);
     return res.json({ status: response.body.status });
   } catch (error) {
     console.error("Error al cancelar la suscripción:", error);
