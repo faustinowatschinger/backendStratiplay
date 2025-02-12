@@ -1,7 +1,7 @@
 // routes/mercadopagoWebhook.js
 import express from 'express';
 import admin from 'firebase-admin';
-import serviceAccount from '../serviceAccountKey.json'; // Ajusta la ruta si es necesario
+import serviceAccount from '../config/ordo-62889-firebase-adminsdk-zl2wb-dd93e17d22.json' assert { type: 'json' }; // Ajusta la ruta si es necesario
 
 // Inicializamos firebase-admin si no está inicializado
 if (!admin.apps.length) {
