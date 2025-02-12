@@ -1,9 +1,9 @@
-// routes/mercadoPagoWebhook.js
+// routes/mercadopagoWebhook.js
 import express from 'express';
 import admin from 'firebase-admin';
 import serviceAccount from '../serviceAccountKey.json'; // Ajusta la ruta si es necesario
 
-// Si no se ha inicializado ya, inicializamos la app de admin
+// Inicializamos firebase-admin si no está inicializado
 if (!admin.apps.length) {
   admin.initializeApp({
     credential: admin.credential.cert(serviceAccount)
@@ -15,14 +15,11 @@ const router = express.Router();
 
 /*
   Este endpoint recibe las notificaciones (webhook) de Mercado Pago.
-  Se espera que Mercado Pago envíe en el payload datos que incluyan el preapproval_id
-  y, preferiblemente, un external_reference que contenga el uid del usuario.
+  Se asume que al configurar el plan se envía el id del usuario en el campo "idUsuario".
   
-  En este ejemplo se comparan dos preapproval_id:
+  Se comparan dos preapproval_id:
     - '2c93808494f9e7ec0194fa433f740024' => plan básico ('basic')
     - '2c93808494f9e7ec0194fa68b1590038' => plan pro ('pro')
-  
-  Ajusta la lógica según el formato real del payload y la forma en que envías el external_reference.
 */
 
 router.post('/webhook', async (req, res) => {
@@ -30,18 +27,18 @@ router.post('/webhook', async (req, res) => {
   console.log("Webhook recibido:", JSON.stringify(event, null, 2));
 
   try {
-    // Ejemplo: se verifica que se trate de un evento de preapproval
-    // Revisa la documentación de Mercado Pago para saber cuál es el campo que identifica el evento.
-    // Aquí asumimos que la información relevante está en event.data.
+    // Se asume que la información relevante está en event.data.
     const data = event.data;
     if (!data) {
       return res.status(400).send("No se encontró data en el evento.");
     }
 
-    // Extraemos el preapproval_id y asumimos que se envía un external_reference (por ejemplo, el uid del usuario)
+    // Extraemos el preapproval_id
     const preapproval_id = data.preapproval_id || data.id;
-    const externalReference = data.external_reference; // Asegúrate de enviar esto desde Mercado Pago
 
+    // Ahora, en lugar de usar external_reference, usamos el campo idUsuario que configuraste.
+    const idUsuario = data.idUsuario;
+    
     let newPlan = null;
     if (preapproval_id === '2c93808494f9e7ec0194fa433f740024') {
       newPlan = 'basic';
@@ -49,12 +46,12 @@ router.post('/webhook', async (req, res) => {
       newPlan = 'pro';
     }
 
-    if (newPlan && externalReference) {
-      // Actualiza el documento del usuario en Firestore
-      await dbAdmin.collection('usuarios').doc(externalReference).update({ plan: newPlan });
-      console.log(`Plan actualizado a ${newPlan} para el usuario ${externalReference}`);
+    if (newPlan && idUsuario) {
+      // Actualiza el documento del usuario en Firestore usando idUsuario
+      await dbAdmin.collection('usuarios').doc(idUsuario).update({ plan: newPlan });
+      console.log(`Plan actualizado a ${newPlan} para el usuario ${idUsuario}`);
     } else {
-      console.log("No se realizó actualización. newPlan o externalReference faltante.");
+      console.log("No se realizó actualización. newPlan o idUsuario faltante.");
     }
 
     res.status(200).send("Webhook procesado correctamente.");
