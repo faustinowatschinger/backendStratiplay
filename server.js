@@ -3,8 +3,8 @@ import express from 'express';
 import bodyParser from 'body-parser';
 import { fileURLToPath } from 'url';
 import path from 'path';
-import mercadoPagoRoutes from './routes/mercadopago.js'; // Importa las rutas de Mercado Pago
 import chatCustomPrompt from './routes/chat.js';
+import mercadopagoWebhook from './routes/mercadopagoWebhook.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -15,12 +15,9 @@ const port = process.env.PORT || 5000;
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-// Rutas de Mercado Pago para la suscripción
-app.use('/api/mercadopago', mercadoPagoRoutes);
-
 // Otras rutas (por ejemplo, chat)
 app.use('/api/chat', chatCustomPrompt);
-
+app.use('/api/mercadopago', mercadopagoWebhook);
 // Archivos estáticos
 app.use(express.static(path.join(__dirname, 'build')));
 
