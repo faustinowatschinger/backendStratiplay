@@ -12,24 +12,22 @@ if (!admin.apps.length) {
 const dbAdmin = admin.firestore();
 const router = express.Router();
 
+// routes/mercadopagoWebhook.js
 router.post('/webhook', async (req, res) => {
   const event = req.body;
   console.log("Webhook recibido:", JSON.stringify(event, null, 2));
 
   try {
-    const data = event.data;
-    if (!data) {
-      return res.status(400).send("No se encontró data en el evento.");
+    const resource = event.resource || event.data; // Asegura compatibilidad
+    if (!resource) {
+      return res.status(400).send("Datos incompletos.");
     }
 
-    // Log para inspeccionar qué datos se reciben
-    console.log("Datos recibidos:", JSON.stringify(data, null, 2));
+    const preapproval_id = resource.preapproval_id || resource.id;
+    const idUsuario = resource.external_reference; // Mercado Pago lo envía aquí
 
-    const preapproval_id = data.preapproval_id || data.id;
+    console.log(`Datos: preapproval_id=${preapproval_id}, usuario=${idUsuario}`);
 
-    // Se intenta obtener el id del usuario de dos posibles campos
-    const idUsuario = data.external_reference || data.idUsuario;
-    
     let newPlan = null;
     if (preapproval_id === '2c93808494f9e7ec0194fa433f740024') {
       newPlan = 'basic';
@@ -39,15 +37,15 @@ router.post('/webhook', async (req, res) => {
 
     if (newPlan && idUsuario) {
       await dbAdmin.collection('usuarios').doc(idUsuario).update({ plan: newPlan });
-      console.log(`Plan actualizado a ${newPlan} para el usuario ${idUsuario}`);
+      console.log(`Plan actualizado a ${newPlan} para ${idUsuario}`);
+      res.status(200).send("OK");
     } else {
-      console.log("No se realizó actualización. newPlan o idUsuario faltante.");
+      console.log("Faltan datos para actualizar.");
+      res.status(400).send("Faltan datos");
     }
-
-    res.status(200).send("Webhook procesado correctamente.");
   } catch (error) {
-    console.error("Error al procesar el webhook:", error);
-    res.status(500).send("Error al procesar el webhook.");
+    console.error("Error en webhook:", error);
+    res.status(500).send("Error interno");
   }
 });
 
