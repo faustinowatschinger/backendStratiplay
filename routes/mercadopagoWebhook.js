@@ -1,9 +1,8 @@
 // routes/mercadopagoWebhook.js
 import express from 'express';
 import admin from 'firebase-admin';
-import serviceAccount from '../config/ordo-62889-firebase-adminsdk-zl2wb-dd93e17d22.json' assert { type: 'json' }; // Ajusta la ruta si es necesario
+import serviceAccount from '../config/ordo-62889-firebase-adminsdk-zl2wb-dd93e17d22.json' assert { type: 'json' };
 
-// Inicializamos firebase-admin si no está inicializado
 if (!admin.apps.length) {
   admin.initializeApp({
     credential: admin.credential.cert(serviceAccount)
@@ -13,31 +12,23 @@ if (!admin.apps.length) {
 const dbAdmin = admin.firestore();
 const router = express.Router();
 
-/*
-  Este endpoint recibe las notificaciones (webhook) de Mercado Pago.
-  Se asume que al configurar el plan se envía el id del usuario en el campo "idUsuario".
-  
-  Se comparan dos preapproval_id:
-    - '2c93808494f9e7ec0194fa433f740024' => plan básico ('basic')
-    - '2c93808494f9e7ec0194fa68b1590038' => plan pro ('pro')
-*/
-
 router.post('/webhook', async (req, res) => {
   const event = req.body;
   console.log("Webhook recibido:", JSON.stringify(event, null, 2));
 
   try {
-    // Se asume que la información relevante está en event.data.
     const data = event.data;
     if (!data) {
       return res.status(400).send("No se encontró data en el evento.");
     }
 
-    // Extraemos el preapproval_id
+    // Log para inspeccionar qué datos se reciben
+    console.log("Datos recibidos:", JSON.stringify(data, null, 2));
+
     const preapproval_id = data.preapproval_id || data.id;
 
-    // Ahora, en lugar de usar external_reference, usamos el campo idUsuario que configuraste.
-    const idUsuario = data.external_reference;
+    // Se intenta obtener el id del usuario de dos posibles campos
+    const idUsuario = data.external_reference || data.idUsuario;
     
     let newPlan = null;
     if (preapproval_id === '2c93808494f9e7ec0194fa433f740024') {
@@ -47,7 +38,6 @@ router.post('/webhook', async (req, res) => {
     }
 
     if (newPlan && idUsuario) {
-      // Actualiza el documento del usuario en Firestore usando idUsuario
       await dbAdmin.collection('usuarios').doc(idUsuario).update({ plan: newPlan });
       console.log(`Plan actualizado a ${newPlan} para el usuario ${idUsuario}`);
     } else {
