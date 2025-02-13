@@ -1,15 +1,15 @@
 // filepath: /c:/Users/Administrador/Documents/plataforma-de-aprendisaje-SaaS/backend/routes/mercadopagoWebhook.js
 import express from 'express';
 import admin from 'firebase-admin';
-import serviceAccount from '../config/ordo-62889-firebase-adminsdk-zl2wb-dd93e17d22.json' assert { type: 'json' };
 import dotenv from 'dotenv';
 
 dotenv.config();
 
+import serviceAccount from '../config/ordo-62889-firebase-adminsdk-zl2wb-dd93e17d22.json' assert { type: 'json' };
 if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount)
-  });
+    admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount),
+    });
 }
 
 const dbAdmin = admin.firestore();
