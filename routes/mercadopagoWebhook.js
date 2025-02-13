@@ -37,7 +37,7 @@ router.post('/webhook', async (req, res) => {
     const preapproval_id = data.preapproval_id || data.id;
 
     // Ahora, en lugar de usar external_reference, usamos el campo idUsuario que configuraste.
-    const idUsuario = data.idUsuario;
+    const idUsuario = data.external_reference;
     
     let newPlan = null;
     if (preapproval_id === '2c93808494f9e7ec0194fa433f740024') {
