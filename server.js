@@ -5,7 +5,6 @@ import { fileURLToPath } from 'url';
 import path from 'path';
 import chatCustomPrompt from './routes/chat.js';
 import mercadopagoWebhook from './routes/mercadopagoWebhook.js';
-import createSubscription from './routes/createSubscription.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -19,7 +18,6 @@ app.use(bodyParser.urlencoded({ extended: true }));
 // Otras rutas (por ejemplo, chat)
 app.use('/api/chat', chatCustomPrompt);
 app.use('/api/mercadopago', mercadopagoWebhook);
-app.use("/api/mercadopago", createSubscription);
 // Archivos estáticos
 app.use(express.static(path.join(__dirname, 'build')));
 
