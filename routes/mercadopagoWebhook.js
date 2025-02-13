@@ -1,7 +1,10 @@
-// routes/mercadopagoWebhook.js
+// filepath: /c:/Users/Administrador/Documents/plataforma-de-aprendisaje-SaaS/backend/routes/mercadopagoWebhook.js
 import express from 'express';
 import admin from 'firebase-admin';
 import serviceAccount from '../config/ordo-62889-firebase-adminsdk-zl2wb-dd93e17d22.json' assert { type: 'json' };
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 if (!admin.apps.length) {
   admin.initializeApp({
@@ -12,21 +15,23 @@ if (!admin.apps.length) {
 const dbAdmin = admin.firestore();
 const router = express.Router();
 
-// routes/mercadopagoWebhook.js
 router.post('/webhook', async (req, res) => {
+  const secret = req.query.secret;
+  if (secret !== process.env.WEBHOOK_SECRET) {
+    return res.status(403).send('No autorizado');
+  }
+
   const event = req.body;
   console.log("Webhook recibido:", JSON.stringify(event, null, 2));
 
   try {
-    const resource = event.resource || event.data; // Asegura compatibilidad
-    if (!resource) {
-      return res.status(400).send("Datos incompletos.");
+    const data = event.resource || event.data; // Asegura compatibilidad
+    if (!data) {
+      return res.status(400).send("No se encontró data en el evento.");
     }
 
-    const preapproval_id = resource.preapproval_id || resource.id;
-    const idUsuario = resource.external_reference; // Mercado Pago lo envía aquí
-
-    console.log(`Datos: preapproval_id=${preapproval_id}, usuario=${idUsuario}`);
+    const preapproval_id = data.preapproval_id || data.id;
+    const idUsuario = data.external_reference || data.idUsuario;
 
     let newPlan = null;
     if (preapproval_id === '2c93808494f9e7ec0194fa433f740024') {
@@ -37,14 +42,14 @@ router.post('/webhook', async (req, res) => {
 
     if (newPlan && idUsuario) {
       await dbAdmin.collection('usuarios').doc(idUsuario).update({ plan: newPlan });
-      console.log(`Plan actualizado a ${newPlan} para ${idUsuario}`);
-      res.status(200).send("OK");
+      console.log(`Plan actualizado a ${newPlan} para el usuario ${idUsuario}`);
+      res.status(200).send("Webhook procesado correctamente.");
     } else {
-      console.log("Faltan datos para actualizar.");
+      console.log("No se realizó actualización. newPlan o idUsuario faltante.");
       res.status(400).send("Faltan datos");
     }
   } catch (error) {
-    console.error("Error en webhook:", error);
+    console.error("Error al procesar el webhook:", error);
     res.status(500).send("Error interno");
   }
 });

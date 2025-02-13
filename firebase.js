@@ -5,5 +5,5 @@ admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
   databaseURL: 'https://Ordo.firebaseio.com' // Reemplaza <your-database-name> con el nombre de tu base de datos
 });
-
+const webhookToken = await admin.auth().createCustomToken('webhook', { role: 'webhook' });
 module.exports = admin;
