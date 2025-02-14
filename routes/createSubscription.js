@@ -10,6 +10,7 @@ router.post('/create-subscription', async (req, res) => {
   try {
     // Se esperan en el body: userUid, payerEmail, amount, (y opcionalmente frequency, frequency_type)
     const { userUid, payerEmail, amount, frequency, frequency_type } = req.body;
+    const startDate = new Date(Date.now() + 5 * 60 * 1000).toISOString();
 
     const payload = {
       auto_recurring: {
@@ -17,7 +18,7 @@ router.post('/create-subscription', async (req, res) => {
         frequency_type: frequency_type || "months",
         transaction_amount: amount || 20,
         currency_id: "ARS",
-        start_date: new Date().toISOString(),
+        start_date: startDate,
         billing_day: 1,
         billing_start_proportional: false
       },
