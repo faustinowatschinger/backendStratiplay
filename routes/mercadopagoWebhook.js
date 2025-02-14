@@ -35,7 +35,7 @@ router.post('/webhook', async (req, res) => {
 
     const preapproval_id = data.preapproval_id || data.id;
     const idUsuario = data.external_reference || data.idUsuario;
-    
+      
     if (!preapproval_id || !idUsuario) {
       console.log("POST Webhook: Faltan datos. preapproval_id:", preapproval_id, "idUsuario:", idUsuario);
       return res.status(400).send("Faltan datos");
@@ -57,7 +57,7 @@ router.post('/webhook', async (req, res) => {
 
       // Opcional: actualizar el estado de la suscripción en la colección "subscriptions"
       await dbAdmin.collection('subscriptions').doc(preapproval_id).update({ status: data.status });
-      
+        
       res.status(200).send("Webhook procesado correctamente.");
     } else {
       console.log("POST Webhook: No se encontró plan asociado en la suscripción. preapproval_id:", preapproval_id);

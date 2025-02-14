@@ -8,23 +8,25 @@ const router = express.Router();
 
 router.post('/create-subscription', async (req, res) => {
   try {
-    // Ahora se espera que en el body se incluya "planType" (ej. "basic" o "pro")
-    const { userUid, payerEmail, amount, planType, frequency, frequency_type } = req.body;
-    const startDate = new Date(Date.now() + 5 * 60 * 1000).toISOString();
+    // Se espera que en el body se incluya "planType" (ej. "basic" o "pro")
+    const { userUid, payerEmail, planType } = req.body;
+
+    // Mapeo de planType a preapproval_plan_id (ya creados en Mercado Pago)
+    const planMapping = {
+      basic: "2c93808494f9e7ec0194fa433f740024", // plan basico
+      pro: "2c93808494f9e7ec0194fa68b1590038"    // plan pro
+    };
+    
+    const planId = planMapping[planType];
+    if (!planId) {
+      return res.status(400).json({ error: "PlanType no válido" });
+    }
 
     const payload = {
-      auto_recurring: {
-        frequency: frequency || 1,
-        frequency_type: frequency_type || "months",
-        transaction_amount: amount || 20,
-        currency_id: "ARS",
-        start_date: startDate,
-        billing_day: 1,
-        billing_start_proportional: false
-      },
+      preapproval_plan_id: planId,      // Asocia la suscripción al plan existente
       payer_email: payerEmail,
-      external_reference: userUid, // Se envía el uid del usuario
-      back_url: process.env.MP_BACK_URL, // Configurado en .env
+      external_reference: userUid,      // Se envía el uid del usuario
+      back_url: process.env.MP_BACK_URL, // Configurado en tu .env
       reason: "Suscripción Stratiplay"
     };
 
@@ -36,7 +38,7 @@ router.post('/create-subscription', async (req, res) => {
     });
 
     console.log("Respuesta de Mercado Pago:", mpResponse.data);
-    // Extraemos el preapproval_id de la respuesta (usamos el campo "id")
+    // Extraemos el preapproval_id de la respuesta (campo "id")
     const preapprovalId = mpResponse.data.id;
 
     // Guardamos en Firestore la relación entre la suscripción y el plan
