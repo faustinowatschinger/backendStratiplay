@@ -1,4 +1,3 @@
-// routes/mercadopagoWebhook.js
 import express from 'express';
 import admin from 'firebase-admin';
 import dotenv from 'dotenv';
@@ -27,7 +26,7 @@ router.post('/webhook', async (req, res) => {
   console.log("POST Webhook recibido:", JSON.stringify(event, null, 2));
 
   try {
-    // Se intenta obtener la data en event.data o event.resource
+    // Se obtiene la data en event.data o event.resource
     const data = event.data || event.resource;
     if (!data) {
       return res.status(400).send("No se encontró data en el evento.");
