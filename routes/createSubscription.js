@@ -30,7 +30,7 @@ router.post('/create-subscription', async (req, res) => {
     const mpResponse = await axios.post("https://api.mercadopago.com/preapproval", payload, {
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${process.env.MP_ACCESS_TOKEN}`
+        Authorization: `Bearer ${process.env.MERCADO_PAGO_ACCESS_TOKEN}`
       }
     });
 
