@@ -253,6 +253,18 @@ let promptContent = `
             promptContent += `
             Información específica para Ajedrez:
             - Experiencia del jugador: ${informacionTema.experienciaAjedrez || 'No especificado'}.
+            - Quiero que tengas en cuenta esta lista de elo:
+            Principiante: ELO inferior a 1200
+            (Se asume que aún está aprendiendo conceptos básicos como la mecánica de las aperturas, movimientos y tácticas elementales.)
+
+            Intermedio: ELO entre 1200 y 1600
+            (El jugador ya domina las tácticas básicas, conoce varias aperturas y tiene una comprensión general de la estrategia, pero aún puede mejorar en aspectos más complejos.)
+
+            Avanzado: ELO entre 1600 y 2000
+            (El jugador tiene un buen conocimiento de la estrategia, sabe planificar en el medio juego y manejar situaciones de presión, pero aún puede pulir ciertos detalles.)
+
+            Experto: ELO superior a 2000
+            (El jugador posee un dominio considerable del juego, entiende profundamente la estrategia, la táctica y tiene una alta capacidad para el análisis de partidas.)
             ${informacionTema.experienciaAjedrez === 'Elo online' ? `- Elo chess.com/lichess del jugador: ${informacionTema.elo || 'No especificado'}.` : `- Elo fide del jugador: ${informacionTema.elo || 'No especificado'}.`}
             - Tiempo de juego preferido: ${informacionTema.tiempo || 'No especificado'}.
             - Conocimientos previos: ${informacionTema.conocimientosAjedrez || 'No especificado'}.
