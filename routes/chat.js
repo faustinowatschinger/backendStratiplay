@@ -551,6 +551,11 @@ router.post('/actualizar-estado-objetivo', async (req, res) => {
 router.get('/obtener-plan/:planId', async (req, res) => {
     const { planId } = req.params;
 
+    if (!planId) {
+        logger.error('planId no proporcionado');
+        return res.status(400).json({ error: 'planId es requerido' });
+    }
+
     let uid;
     try {
         const idToken = req.headers.authorization?.split(' ')[1];
@@ -575,14 +580,33 @@ router.get('/obtener-plan/:planId', async (req, res) => {
         const planDoc = await planRef.get();
 
         if (!planDoc.exists) {
-            throw new Error('El plan de estudio no existe');
+            logger.error(`Plan de estudio no encontrado para el usuario ${uid} y planId ${planId}`);
+            return res.status(404).json({ error: 'El plan de estudio no existe' });
         }
 
         const planData = planDoc.data();
-        return res.json(planData);
+        
+        // Validar estructura básica del plan
+        if (!planData || typeof planData !== 'object') {
+            logger.error('Datos del plan inválidos');
+            return res.status(500).json({ error: 'Datos del plan inválidos' });
+        }
+
+        // Asegurar que los campos requeridos existan
+        const planValidado = {
+            ...planData,
+            planEstudio: Array.isArray(planData.planEstudio) ? planData.planEstudio : [],
+            objetivos: Array.isArray(planData.objetivos) ? planData.objetivos : [],
+            createdAt: planData.createdAt || new Date().toISOString()
+        };
+
+        return res.json(planValidado);
     } catch (error) {
         logger.error('Error al obtener el plan de estudio:', error.message);
-        return res.status(500).json({ error: 'Error al obtener el plan de estudio', details: error.message });
+        return res.status(500).json({ 
+            error: 'Error al obtener el plan de estudio', 
+            details: error.message 
+        });
     }
 });
 
